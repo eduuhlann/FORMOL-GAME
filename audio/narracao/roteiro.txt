@@ -1,0 +1,12 @@
+Narração da intro — voz masculina "Carlos – Resonant & Majestic Storyteller" (ElevenLabs, modelo Eleven v4)
+Arquivos já tratados: silêncio cortado, volume nivelado (-16 LUFS), mono 64 kbps.
+
+narr0  Novembro de mil novecentos e oitenta e sete. Três e doze da manhã.
+narr1  Me chamaram por causa de uma pane elétrica no Instituto São Lázaro.
+narr2  O velho sanatório que a prefeitura transformou em necrotério... e depois tentou esquecer.
+narr3  Ninguém me disse por que o vigia parou de atender o telefone.
+narr4  Nem o que o doutor Varela fazia com os pacientes... no escuro.
+narr5  Assim que eu entrei, a energia caiu. E a porta blindada se fechou atrás de mim.
+narr6  Cinco fusíveis. Era tudo o que eu precisava pra sair dali.
+narr7  Mas eu não estava sozinho.
+narr8  E aquilo... odiava a luz.

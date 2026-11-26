@@ -1,0 +1,6 @@
+Passos individuais recortados dos clipes da ElevenLabs (pasta originais_elevenlabs).
+step_tile_*     botas andando no azulejo (10)
+step_tilerun_*  botas correndo (8)
+step_wet_*      botas na água do subsolo (10)
+step_flesh_*    pés descalços molhados da criatura (8)
+O jogo sorteia um diferente a cada passo, sem repetir o anterior.

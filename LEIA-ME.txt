@@ -1,0 +1,52 @@
+FORMOL — Instituto São Lázaro, 1987
+Terror em primeira pessoa · protótipo jogável
+
+COMO JOGAR
+  Dê dois cliques em "JOGAR - FORMOL.html" (abre no Chrome ou Edge; funciona offline).
+  Use fones de ouvido. Computador com teclado e mouse.
+  Também dá para jogar online pelo atalho "Jogar online".
+
+CONTROLES
+  W A S D ........ mover            Mouse ........ olhar
+  Shift .......... correr (escondido: prender a respiração)
+  C .............. agachar           F ............ ligar/desligar lanterna
+  Botão direito .. foco (queima o rosto da criatura)
+  E .............. interagir / esconder / segurar para instalar fusível
+  Tab ............ mapa              V ............ balanço da câmera
+  Esc ............ pausa             Espaço (segurar) ... pular a intro
+
+OBJETIVO
+  Ache os 5 fusíveis (Enfermaria, Segurança, Isolamento, Gaveta 7 do Necrotério,
+  Gerador do Subsolo), instale no quadro QG-1 da recepção, puxe a alavanca e
+  sobreviva 25 segundos até a porta abrir. O jogo salva a cada fusível instalado.
+
+O QUE TEM NESTE PACOTE
+  JOGAR - FORMOL.html ........ o jogo completo num arquivo só
+  Jogar online.url ........... link do jogo publicado
+  documento-de-design/
+     FORMOL_GDD.md ........... documento de design (conceito, mecânicas, IA, mapa, arte, áudio, produção)
+     diagrama_ia_criatura.png  estados da criatura
+     mapa_niveis.png ......... planta dos setores e fusíveis
+     GDD online (editável).url versão completa e editável (exporta para Word/PDF)
+  audio/
+     narracao/ ............... 9 falas da intro já tratadas + roteiro.txt
+     passos/ ................. 36 passos individuais (azulejo, correndo, água, criatura)
+     originais_elevenlabs/ ... arquivos brutos gerados na ElevenLabs
+  codigo-fonte/
+     game.js ................. todo o jogo (sistemas, IA, render, áudio, menu, intro)
+     shell.html .............. HTML/CSS das telas (menu, intro, HUD)
+     build.py ................ gera o "JOGAR - FORMOL.html" de novo (python build.py)
+     process_audio.py ........ trata os MP3 da ElevenLabs (precisa de ffmpeg e numpy)
+     vendor/three.min.js ..... Three.js r158 (licença MIT incluída)
+     testes/ ................. scripts de teste automatizado (Playwright) usados no desenvolvimento
+  capturas-de-tela/ .......... imagens do menu, intro e gameplay
+
+EDITAR O JOGO
+  1. Altere codigo-fonte/game.js (os números de balanceamento ficam no objeto CFG, no topo).
+  2. Rode:  python build.py   (dentro da pasta codigo-fonte)
+  3. Abra o "JOGAR - FORMOL.html" gerado.
+
+CRÉDITOS
+  Design, código, arte procedural e som: Claude, para eduuhlann.
+  Narração e passos: ElevenLabs (voz "Carlos – Resonant & Majestic Storyteller").
+  Three.js (MIT).

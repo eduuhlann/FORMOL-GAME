@@ -11,25 +11,34 @@ CONTROLES
   Shift .......... correr (escondido: prender a respiração)
   C .............. agachar           F ............ ligar/desligar lanterna
   Botão direito .. foco (queima o rosto da criatura)
-  E .............. interagir / esconder / segurar para instalar fusível
+  E .............. interagir / ler / esconder / segurar para instalar fusível ou lâmpada
   Tab ............ mapa              V ............ balanço da câmera
   Esc ............ pausa             Espaço (segurar) ... pular a intro
 
-OBJETIVO
-  Ache os 5 fusíveis (Enfermaria, Segurança, Isolamento, Gaveta 7 do Necrotério,
-  Gerador do Subsolo), instale no quadro QG-1 da recepção, puxe a alavanca e
-  sobreviva 25 segundos até a porta abrir. O jogo salva a cada fusível instalado.
+CAPÍTULOS
+  I · APAGÃO — Ache os 5 fusíveis (Enfermaria, Segurança, Isolamento, Gaveta 7 do
+      Necrotério, Gerador do Subsolo), instale no QG-1 da recepção, puxe a alavanca
+      e sobreviva 25 segundos de ignição.
+  II · NOITE LONGA — No Pavilhão Leste, ache as 3 fitas do Dr. Varela, descubra o
+      código do escritório da diretoria e pegue o cartão.
+  III · FORMOL — Libere a Sala de Fototerapia com o cartão, encaixe as 3 lâmpadas
+      de arco no console, apague a lanterna, atraia a criatura para a sala,
+      acione a descarga e saia pela porta principal.
+  O jogo salva a cada fusível, fita, lâmpada e mudança de capítulo.
+  A história completa está em documento-de-design/LORE.md.
 
 O QUE TEM NESTE PACOTE
   JOGAR - FORMOL.html ........ o jogo completo num arquivo só
   Jogar online.url ........... link do jogo publicado
   documento-de-design/
      FORMOL_GDD.md ........... documento de design (conceito, mecânicas, IA, mapa, arte, áudio, produção)
+     LORE.md ................. história, personagens, linha do tempo e os 3 capítulos
      diagrama_ia_criatura.png  estados da criatura
      mapa_niveis.png ......... planta dos setores e fusíveis
      GDD online (editável).url versão completa e editável (exporta para Word/PDF)
   audio/
      narracao/ ............... 9 falas da intro já tratadas + roteiro.txt
+     altofalante/ ............ 9 falas da enfermeira Celeste (alto-falante), já tratadas
      passos/ ................. 36 passos individuais (azulejo, correndo, água, criatura)
      originais_elevenlabs/ ... arquivos brutos gerados na ElevenLabs
   codigo-fonte/
@@ -47,6 +56,7 @@ EDITAR O JOGO
   3. Abra o "JOGAR - FORMOL.html" gerado.
 
 CRÉDITOS
-  Design, código, arte procedural e som: Claude, para eduuhlann.
+  Direção, design, código, arte procedural e som: eduuhlann.
   Narração e passos: ElevenLabs (voz "Carlos – Resonant & Majestic Storyteller").
+  Alto-falante (enfermeira Celeste): ElevenLabs (voz "Matilda").
   Three.js (MIT).

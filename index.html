@@ -902,6 +902,15 @@ const TAPE_TEXT = {
 const LETTER = ['CARTA DO DR. ANTÔNIO VARELA', 'Senhor eletricista,\n\nquando o senhor ler isto, eu já terei tomado o frasco inteiro. Quatro anos esperando alguém religar a luz deste lugar e, quando finalmente acontece, descubro que não tenho coragem de encarar o que vem depois.\n\nO cartão no meu bolso abre a sala de fototerapia. A porta da frente não abre com cartão nenhum: a trava de segurança só cede com uma sobrecarga na rede. A descarga das lâmpadas de arco faz isso.\n\nDez mil lux. Foi assim que eu matei o Tomás. É a única coisa que pode terminar o que eu comecei.\n\nA Celeste vai falar com o senhor pelo alto-falante. Confie nela mais do que confiaria em mim: foi ela que alimentou o menino durante nove meses e nunca deixou de ir até a gaveta.\n\nEscondi as três lâmpadas dele: uma no forno do crematório, uma no altar da capela e uma na câmara fria do necrotério, onde ele dormiu três dias.\n\nEncaixe as três no console. Depois apague a sua lanterna: ele não chega perto de quem carrega luz. Deixe que ele o siga para dentro da sala, e só então acione a descarga. E não olhe para a luz.\n\nPeça perdão a ele por mim. Ele não vai ouvir.\n\n— A. Varela'];
 const TAPES = [addPickup('tape', 1, 52, 1), addPickup('tape', 2, 60, 9), addPickup('tape', 3, 44, 17)];
 const LAMPS = [addPickup('lamp', 1, 51, 31, { hidden: true }), addPickup('lamp', 2, 48, 23, { hidden: true }), addPickup('lamp', 3, 4, 21, { hidden: true })];
+// quando só falta uma lâmpada, ela aparece na capela, ao lado do altar (fica fácil de achar)
+function lastLampToChapel(silent) {
+  if (PROG.ch < 3 || PROG.killed) return;
+  const left = LAMPS.filter(l => l.active);
+  if (left.length !== 1 || PROG.lamps.length + P.lamps.length !== 2) return;
+  const l = left[0], c = center(50, 23); if (Math.hypot(l.pos.x - c.x, l.pos.z - c.z) < 1) return;
+  l.mesh.position.set(c.x, l.mesh.position.y, c.z); l.pos.set(c.x, l.pos.y, c.z); l.mesh.visible = true;
+  if (!silent) { msg('Um baque metálico ecoa na capela. A última lâmpada de arco está lá, ao lado do altar.', 5); SFX.clank({ x: c.x, y: 1, z: c.z }); }
+}
 const CARD = addPickup('card', 1, 62, 5);
 { // o Dr. Varela, caído ao lado da mesa (frasco de pentobarbital vazio)
   const c = center(62, 5), g = new THREE.Group(); g.position.set(c.x + 0.3, 0, c.z - 0.2); g.rotation.y = 0.7;
@@ -2397,6 +2406,7 @@ function applyProgress(sv) {
   if (PROG.card) { CARD.active = false; CARD.mesh.visible = false; }
   if (PROG.ch >= 3) LAMPS.forEach(l => { const inst = PROG.lamps.includes(l.n); l.active = !inst; l.mesh.visible = !inst; });
   PROG.lamps.forEach((n, i) => CONSOLE.show(i));
+  lastLampToChapel(true);
   if (PROG.fotoOpen) { openDoor(DOORS.foto, true); openDoor(DOORS.foto2, true); }
   if (PROG.killed) { AI.state = 'dead'; C.root.visible = false; AI.pos.set(-60, 0, -60); openExit(true); }
   computeLightGrid(); AI.level = levelFor();
@@ -2562,7 +2572,7 @@ function pressInteract() {
   if (it.type === 'battery') { it.active = false; it.mesh.visible = false; fl.battery = Math.min(100, fl.battery + 35); SFX.pickup(); msg('+35% de bateria', 2); }
   if (it.type === 'note') { SFX.click(); showDoc(it.title, it.text); }
   if (it.type === 'tape') takeTape(it);
-  if (it.type === 'lamp') { it.active = false; it.mesh.visible = false; P.lamps.push(it); SFX.pickup(); emitNoise(it.pos, CFG.noise.pickup, 2); msg('Lâmpada de arco — leve ao console da Sala de Fototerapia.', 3); updateCarried(); }
+  if (it.type === 'lamp') { it.active = false; it.mesh.visible = false; P.lamps.push(it); SFX.pickup(); emitNoise(it.pos, CFG.noise.pickup, 2); msg('Lâmpada de arco — leve ao console da Sala de Fototerapia.', 3); updateCarried(); setTimeout(() => lastLampToChapel(false), 3500); }
   if (it.type === 'card') takeCard();
   if (it.type === 'exit') tone({ f: 160, type: 'square', peak: 0.06, d: 0.3 });
   if (it.type === 'door') { if (it.door.key === 'office') useKeypad(); else if (it.door.key !== 'fogo') useReader(); }
@@ -2705,7 +2715,7 @@ function updateObjective() {
   else {
     const L = [];
     if (!PROG.fotoOpen) L.push('Use o cartão na Sala de Fototerapia');
-    if (PROG.lamps.length < 3) L.push(`Lâmpadas de arco no console <b>${PROG.lamps.length}</b>/3` + (P.lamps.length ? `<br><small>carregando: ${P.lamps.length}</small>` : ''));
+    if (PROG.lamps.length < 3) L.push(`Lâmpadas de arco no console <b>${PROG.lamps.length}</b>/3` + (P.lamps.length ? `<br><small>carregando: ${P.lamps.length}</small>` : '') + (PROG.lamps.length + P.lamps.length === 2 ? '<br><small>a última está na capela, ao lado do altar</small>' : ''));
     else L.push(FOTO.cool > 0 ? 'Capacitores recarregando…' : 'Atraia-o para a Sala de Fototerapia<br><small>apague a lanterna · descarga no console quando ele entrar</small>');
     t = L.join('<br>');
   }

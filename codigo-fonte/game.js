@@ -93,6 +93,7 @@ carve(55, 16, 64, 24); grid[idx(59, 15)] = 'X'; carve(60, 25, 60, 25); grid[idx(
 // crematório
 carve(45, 25, 45, 26); carve(44, 27, 61, 32);
 grid[idx(48, 15)] = 'X';                                         // porta da capela (abre no capítulo III)
+carve(36, 26, 36, 27); carve(34, 28, 39, 31);                    // esconderijo do vigia Osmar (passagem estreita na autópsia)
 
 // ===== GALERIAS SUBTERRÂNEAS + PÁTIO INTERNO (capítulo IV) =====
 grid[idx(53, 33)] = 'X'; grid[idx(15, 33)] = 'X';                // alçapão do crematório · grade do subsolo
@@ -119,6 +120,7 @@ function regionAt(x, z) {
     if (z <= 25) return x <= 53 ? 'capela' : 'fototerapia';
     return x === 60 && z === 26 ? 'fototerapia' : 'crematorio';
   }
+  if (z >= 26 && x >= 25 && x <= 43) return 'vigia';
   if (z >= 27) return x <= 19 ? 'subsolo' : 'rua';
   if (z >= 13 && z <= 14) return 'corredor';
   if (z <= 12) return x <= 15 ? 'pacientes' : x <= 28 ? 'enfermaria' : 'admin';
@@ -131,7 +133,7 @@ const REGION_NAME = {
   autopsia: 'Autópsia e Laboratório', subsolo: 'Subsolo', rua: 'Saída',
   leste: 'Pavilhão Leste', privacao: 'Câmaras de Privação', diretoria: 'Diretoria — Dr. Varela', gravacao: 'Sala de Gravação',
   capela: 'Capela', fototerapia: 'Sala de Fototerapia', crematorio: 'Crematório',
-  galerias: 'Galerias Subterrâneas', ossario: 'Ossário', reservatorio: 'Reservatório', quarto: 'Quarto da Enf. Celeste', patio: 'Pátio Interno'
+  galerias: 'Galerias Subterrâneas', ossario: 'Ossário', reservatorio: 'Reservatório', quarto: 'Quarto da Enf. Celeste', patio: 'Pátio Interno', vigia: 'Esconderijo do Vigia'
 };
 // capítulo em que cada área passa a fazer parte do jogo (o mapa cresce a cada capítulo)
 const REGION_CH = { leste: 2, privacao: 2, diretoria: 2, gravacao: 2, capela: 3, fototerapia: 3, crematorio: 3, galerias: 4, ossario: 4, reservatorio: 4, quarto: 4, patio: 4 };
@@ -375,6 +377,8 @@ buildWalls();
   const r3 = new THREE.Mesh(new THREE.PlaneGeometry(18 * CS, 6 * CS), M.wet);
   r3.rotation.x = -Math.PI / 2; r3.position.set(53 * CS, 0.01, 30 * CS); r3.receiveShadow = true; level.add(r3);
   // galerias: teto baixo de concreto (o pátio fica a céu aberto) e piso molhado
+  const c5 = new THREE.Mesh(new THREE.PlaneGeometry(7 * CS, 7 * CS), M.concrete);
+  c5.rotation.x = Math.PI / 2; c5.position.set(37 * CS, CFG.wallH, 29.5 * CS); level.add(c5);
   const c4 = new THREE.Mesh(new THREE.PlaneGeometry(W * CS, 12 * CS), M.concrete);
   c4.rotation.x = Math.PI / 2; c4.position.set(W * CS / 2, CFG.wallH, 39 * CS); level.add(c4);
   const r4 = new THREE.Mesh(new THREE.PlaneGeometry(54 * CS, 11 * CS), M.wet);
@@ -419,13 +423,14 @@ function addLocker(x, z) {
   const spot = { type: 'locker', x, z, pos: new THREE.Vector3(g.position.x, 0, g.position.z), face, door, group: g, inside: g.position.clone() };
   hideSpots.push(spot); interact.push({ type: 'hide', spot, pos: center(x, z), active: true });
 }
+const BODY_BEDS = [];
 function addBed(x, z, opts = {}) {
   const g = new THREE.Group(), c = center(x, z); g.position.copy(c);
   const [dx, dz] = wallDir(x, z); g.rotation.y = dz !== 0 ? Math.PI / 2 : 0;
   for (const sx of [-0.42, 0.42]) for (const sz of [-0.9, 0.9]) cyl(0.025, 0.025, 0.7, M.steel, sx, 0.35, sz, g, 6);
   box(0.95, 0.06, 1.95, M.steel, 0, 0.66, 0, g);
   box(0.9, 0.16, 1.9, M.mattress, 0, 0.77, 0, g);
-  if (opts.body) { const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 1.25, 4, 8), M.bag); b.rotation.x = Math.PI / 2; b.position.set(0, 0.98, 0); b.scale.set(1, 1, 0.6); b.castShadow = true; g.add(b); }
+  if (opts.body) { const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 1.25, 4, 8), M.bag); b.rotation.x = Math.PI / 2; b.position.set(0, 0.98, 0); b.scale.set(1, 1, 0.6); b.castShadow = true; g.add(b); BODY_BEDS.push({ x, z, b }); }
   // lençol caído até o chão (esconde quem está embaixo)
   const sh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.72), M.sheet); sh.rotation.y = Math.PI / 2; sh.position.set(0.5, 0.48, 0); g.add(sh);
   const sh2 = sh.clone(); sh2.position.x = -0.5; g.add(sh2);
@@ -511,6 +516,14 @@ function addPickup(type, n, x, z, opts = {}) {
     for (const sx of [-0.18, 0.18]) { const cap = cyl(0.06, 0.06, 0.06, M.ceramic, sx, 0.06, 0, g, 14); cap.rotation.z = Math.PI / 2; const pin = cyl(0.012, 0.012, 0.05, M.brass, sx * 1.3, 0.06, 0, g, 8); pin.rotation.z = Math.PI / 2; }
     for (const sx of [-0.05, 0.05]) { const e = cyl(0.006, 0.006, 0.1, M.steel, sx * 1.6, 0.06, 0, g, 6); e.rotation.z = Math.PI / 2; }
     gc = 0xe8f4ff; gs = 0.6;
+  } else if (type === 'flare') {
+    const m = cyl(0.02, 0.02, 0.24, new THREE.MeshStandardMaterial({ color: 0x9a1810, roughness: 0.5 }), 0, 0.02, 0, g, 8); m.rotation.z = Math.PI / 2;
+    const c2 = cyl(0.022, 0.022, 0.04, M.dark, 0.13, 0.02, 0, g, 8); c2.rotation.z = Math.PI / 2; gc = 0xff4030; gs = 0.4;
+  } else if (type === 'bottle') {
+    const m = cyl(0.035, 0.035, 0.24, new THREE.MeshPhysicalMaterial({ color: 0x3a5a30, roughness: 0.15, transparent: true, opacity: 0.85 }), 0, 0.035, 0, g, 8); m.rotation.z = Math.PI / 2; gc = 0x90c090; gs = 0.3;
+  } else if (type === 'foto') {
+    const pt = tex(64, 76, (q, w, h) => { q.fillStyle = '#e6e2d6'; q.fillRect(0, 0, w, h); q.fillStyle = '#2a2622'; q.fillRect(5, 5, w - 10, h - 22); grime(q, w, h, 3, 'rgba(90,60,20,A)', 6, 18, .4); });
+    const ph = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.11), new THREE.MeshStandardMaterial({ map: pt, roughness: 0.6 })); ph.rotation.x = -Math.PI / 2; ph.position.y = 0.004; g.add(ph); gc = 0xffffff; gs = 0.3;
   } else if (type === 'crank') {
     const ir = cyl(0.025, 0.025, 0.5, M.rust, 0, 0.03, 0, g, 8); ir.rotation.z = Math.PI / 2;
     const arm = cyl(0.02, 0.02, 0.22, M.rust, 0.25, 0.03, 0.1, g, 6); arm.rotation.x = Math.PI / 2;
@@ -615,6 +628,18 @@ addTable(59, 20, false); addPapers(58, 22, 5); addWheelchair(62, 17, true);
 addFurnace(47, 32); addFurnace(51, 32); addFurnace(55, 32);
 addTable(49, 29, true); addTable(57, 29, false); addBed(58, 31, { body: true });
 addLocker(44, 30); addLocker(61, 31); addBoiler(60, 28); addPipe(44, 28, 61, 28, 2.8);
+// --- esconderijo do vigia ---
+addBed(39, 28); addDesk(34, 31); addShelf(39, 31); addPapers(36, 29, 6);
+{ // Osmar, sentado contra a parede, com a lanterna apagada no colo
+  const g = new THREE.Group(); g.position.copy(center(34, 28)); g.position.x -= 0.35; g.position.z -= 0.3; g.rotation.y = Math.PI * 0.75; level.add(g);
+  const farda = new THREE.MeshStandardMaterial({ color: 0x1f2a3a, roughness: 0.95 }), pele = new THREE.MeshStandardMaterial({ color: 0x6d5d50, roughness: 0.8 });
+  const t = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.45, 6, 10), farda); t.position.set(0, 0.55, 0); t.rotation.x = -0.35; g.add(t);
+  const h = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), pele); h.position.set(0.05, 0.95, 0.12); h.rotation.z = 0.6; g.add(h);
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.06, 14), farda); cap.position.set(0.25, 0.04, 0.45); g.add(cap);
+  for (const sx of [-0.11, 0.11]) { const l = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.6, 4, 8), farda); l.rotation.x = Math.PI / 2; l.position.set(sx, 0.12, 0.42); g.add(l); }
+  const fl2 = cyl(0.03, 0.03, 0.25, M.dark, 0.1, 0.35, 0.25, g, 8); fl2.rotation.z = 1.2;
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+}
 // --- galerias subterrâneas ---
 addPipe(10, 35, 62, 35, 2.75); addPipe(12, 43, 50, 43, 2.85);
 // ossário: prateleiras de ossos
@@ -753,7 +778,9 @@ const FUSES = [
   addFuse(1, 26, 3, 0.05), addFuse(2, 30, 1, 0.05), addFuse(3, 13, 10, 0.05),
   addFuse(4, 2, 24, 0.05), addFuse(5, 17, 32, 0.05)
 ];
-[[17, 10], [41, 10], [40, 18], [30, 24], [13, 17], [8, 6], [3, 30], [55, 7], [46, 30], [63, 14], [57, 23], [62, 10]].forEach(p => addBattery(...p));
+// pilhas em lugares sorteados a cada partida (12 de 22 pontos possíveis)
+[[17, 10], [41, 10], [40, 18], [30, 24], [13, 17], [8, 6], [3, 30], [55, 7], [46, 30], [63, 14], [57, 23], [62, 10], [4, 13], [33, 13], [21, 3], [11, 10], [45, 3], [58, 10], [47, 22], [50, 29], [25, 43], [44, 39]]
+  .map(p => [Math.random(), p]).sort((a, b) => a[0] - b[0]).slice(0, 12).forEach(([, p]) => addBattery(...p));
 
 /* ---------------------------------------------------------------
    LORE — bilhetes, prontuários, fitas do Dr. Varela
@@ -778,8 +805,12 @@ addNote(62, 9, 'ETIQUETA DO ARQUIVO', 'FITAS — PROGRAMA NOITE LONGA\nSessões 
 
 // fitas, lâmpadas de arco e o cartão da diretoria
 const LETTER = ['CARTA DO DR. ANTÔNIO VARELA', 'Senhor eletricista,\n\nquando o senhor ler isto, eu já terei tomado o frasco inteiro. Quatro anos esperando alguém religar a luz deste lugar e, quando finalmente acontece, descubro que não tenho coragem de encarar o que vem depois.\n\nO cartão no meu bolso abre a sala de fototerapia. A porta da frente não abre com cartão nenhum: a trava de segurança só cede com uma sobrecarga na rede. A descarga das lâmpadas de arco faz isso.\n\nDez mil lux. Foi assim que eu matei o Tomás. É a única coisa que pode terminar o que eu comecei.\n\nA Celeste vai falar com o senhor pelo alto-falante. Confie nela mais do que confiaria em mim: foi ela que alimentou o menino durante nove meses e nunca deixou de ir até a gaveta.\n\nEscondi as três lâmpadas dele: uma no forno do crematório, uma no altar da capela e uma na câmara fria do necrotério, onde ele dormiu três dias.\n\nEncaixe as três no console. Depois apague a sua lanterna: ele não chega perto de quem carrega luz. Deixe que ele o siga para dentro da sala, e só então acione a descarga. E não olhe para a luz.\n\nPeça perdão a ele por mim. Ele não vai ouvir.\n\n— A. Varela'];
-const TAPES = [[1, 30, 4], [2, 24, 10], [3, 52, 1], [4, 60, 9], [5, 52, 9], [6, 62, 23], [7, 57, 39], [8, 22, 39]].map(([n, x, z]) => addPickup('tape', n, x, z));
-const MANDATORY_TAPES = [3, 4, 5];   // as três sessões do Dr. Varela revelam o código do escritório
+const TAPES = [[1, 30, 4], [2, 24, 10], [3, 52, 1], [4, 60, 9], [5, 52, 9], [6, 62, 23], [7, 57, 39], [8, 22, 39], [9, 37, 30]].map(([n, x, z]) => addPickup('tape', n, x, z));
+const MANDATORY_TAPES = [3, 4, 5];
+const PHOTOS = [[1, 11, 3], [2, 38, 10], [3, 12, 25], [4, 53, 4], [5, 52, 23], [6, 36, 39]].map(([n, x, z]) => addPickup('foto', n, x, z));
+[[19, 24], [7, 30], [50, 13], [56, 30], [20, 43], [61, 38]].forEach(([x, z]) => addPickup('flare', 1, x, z));
+[[24, 6], [8, 13], [30, 20], [49, 11], [46, 28], [40, 35]].forEach(([x, z]) => addPickup('bottle', 1, x, z));
+addNote(38, 29, 'DIÁRIO DO OSMAR — ESCONDERIJO', 'Montei este canto atrás da autópsia em 1985, quando parei de fazer a ronda no Pavilhão Leste.\n\nNinguém sabe que ele existe. Ele sabe. Ele sabe de tudo.\n\nMas não entra aqui: eu deixo a lâmpada acesa a noite inteira.\n\nHoje a lâmpada queimou.');   // as três sessões do Dr. Varela revelam o código do escritório
 const CRANK = addPickup('crank', 1, 59, 41);
 addNote(60, 42, 'FOTOGRAFIA', 'Uma praia, um dia de sol forte. Uma mulher de cabelo preso abraça um menino de uns oito anos que cobre os olhos com a mão e ri.\n\nNo verso, a lápis:\n"Celeste e Tomás — Cabo Frio, 1971.\nEle reclamou do sol o dia inteiro."');
 addNote(36, 35, 'PLACA ENFERRUJADA', 'GALERIA DE SERVIÇO — 1931\n\nAcesso: crematório · subsolo · pátio interno\n\nO portão do pátio só abre com a manivela da enfermaria.');
@@ -1047,6 +1078,7 @@ addLight(61.5, 3.5, 0xffd9a0, 12, 8, 0.7, 'diretoria', false, 'red');
 // galerias (capítulo IV): emergência vermelha esparsa, vela no quarto da Celeste, lua no pátio
 [[20, 35.5], [38, 35.5], [55, 35.5], [28, 43.5], [46, 43.5]].forEach(([x, z]) => addLight(x, z, 0xff2a18, 4, 7, 0.3, 'galerias', false, 'red'));
 addLight(59, 40, 0xffa050, 8, 8, 0.5, 'quarto', false, 'red');
+addLight(37, 29.5, 0xffd9a0, 6, 7, 0.4, 'vigia', true, 'red');
 const moon = addLight(30.5, 47, 0x6d84a8, 6, 14, 0.35, 'patio', false, 'red'); moon.fixture.visible = false; moon.pos.y = 7;
 
 const lightGrid = new Float32Array(W * H);
@@ -1288,7 +1320,7 @@ function spotVisual(s, hiddenIn) { if (!s) return; if (s.door) s.door.visible = 
 const P = {
   pos: START.clone(), yaw: 0, eyeH: 1.65, pitch: 0, crouch: false, stamina: 1, exhausted: 0,
   hidden: null, hideT: 0, holdBreath: false, breathLock: 0, installedIds: [],
-  carry: [], lamps: [], installed: 0, dead: false, won: false, region: '', noiseLevel: 0
+  carry: [], lamps: [], flares: 0, bottles: 0, installed: 0, dead: false, won: false, region: '', noiseLevel: 0
 };
 const keys = {};
 /* ---------------------------------------------------------------
@@ -1797,6 +1829,7 @@ const SFX = {
     burst({ f: chase ? 380 : 180, q: 1.5, peak: chase ? 0.9 : 0.5, d: chase ? 0.07 : 0.16, dest: A.cIn, rate: rand(.7, 1) }); if (chase) burst({ f: 4000, type: 'highpass', peak: 0.25, d: 0.02, dest: A.cIn }); },
   scream(len = 1.2) {
     { const d = AI.pos.distanceTo(P.pos); if (d < 22) addTrauma(0.5 * (1 - d / 22)); }
+    if (A.sfx_grito && typeof playBuf === 'function') playBuf(A.sfx_grito, { pos: AI.headPos(new THREE.Vector3()), gain: 1.2, verb: 0.6, rate: rand(0.9, 1.05), ref: 3 });
     if (!A.ctx) return; const t = A.ctx.currentTime;
     for (const det of [0, 7, -12]) { const o = A.ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(260 + det, t); o.frequency.exponentialRampToValueAtTime(820 + det * 3, t + 0.25); o.frequency.exponentialRampToValueAtTime(330, t + len);
       const v = A.ctx.createOscillator(); v.frequency.value = 9; const vg = A.ctx.createGain(); vg.gain.value = 40; v.connect(vg).connect(o.frequency); v.start(t); v.stop(t + len);
@@ -1865,14 +1898,14 @@ const AI = {
   // foge correndo para longe do jogador (luz da lanterna ou queimadura do foco)
   flee(dur, fromLight) { if (this.state === 'dying' || this.state === 'dead' || this.state === 'sunwalk') return; this.recoilDur = dur; this.fledLight = !!fromLight; this.lightExp = 0; if (this.checkSpot) closeSpot(this.checkSpot); this.checkSpot = null; this.stalking = false; this.setState('recoil'); },
 
-  setState(s) { if (this.state === s || this.state === 'dying' || this.state === 'dead' || this.state === 'sunwalk') return; this.state = s; this.t = 0; this.path = []; this.pause = 0; if (s === 'chase') { if (performance.now() / 1000 - this.lastScream > 6) { SFX.scream(1.1); this.lastScream = performance.now() / 1000; } } },
-  levelMul() { return CFG.creature.levelSpeed[this.level]; },
+  setState(s) { if (this.state === s || this.state === 'dying' || this.state === 'dead' || this.state === 'sunwalk') return; this.state = s; this.t = 0; this.path = []; this.pause = 0; if (s === 'chase') { STATS.seen++; eliasSay(2, 2); } if (s === 'chase') { if (performance.now() / 1000 - this.lastScream > 6) { SFX.scream(1.1); this.lastScream = performance.now() / 1000; } } },
+  levelMul() { return CFG.creature.levelSpeed[this.level] * (OPT.hard ? 1.12 : 1); },
   goTo(v, avoid = true) { const [sx, sz] = cellOf(this.pos), [tx, tz] = cellOf(v); this.path = astar(sx, sz, tx, tz, avoid) || []; this.target = v.clone(); },
   hear(pos, radius, prio) {
     if (this.grace > 0 || this.state === 'recoil' || this.state === 'dying' || this.state === 'dead' || this.state === 'sunwalk' || P.dead) return;
     const d = Math.hypot(pos.x - this.pos.x, pos.z - this.pos.z);
     const walls = wallsBetween(this.pos.x, this.pos.z, pos.x, pos.z, 4);
-    const eff = radius * CFG.creature.levelHear[this.level] * Math.pow(0.6, walls);
+    const eff = radius * CFG.creature.levelHear[this.level] * (OPT.hard ? 1.25 : 1) * Math.pow(0.6, walls);
     if (d > eff) return;
     if (this.state === 'chase') return;
     this.lastKnown = pos.clone();
@@ -1923,8 +1956,11 @@ const AI = {
     switch (this.state) {
       case 'patrol': {
         speed = sp.patrol;
+        if (this.ambushWait > 0 && !this.path.length) { this.ambushWait -= dt; speed = 0; this.ambush = true; break; }   // emboscada: parado e mudo no escuro
+        this.ambush = false;
         if (this.pause > 0) { this.pause -= dt; speed = 0; break; }
         if (!this.path.length) {
+          if (PROG.ch === 3 && Math.random() < 0.35) { const c = randomCellNear(P.pos, 9); if (c && lightAt(c) < 0.2 && c.distanceTo(P.pos) > 5) { this.goTo(c); this.ambushWait = rand(10, 16); break; } }
           // diretor de tensão: muito tempo longe → dica da região do jogador
           if (this.sinceNear > 110 && !P.hidden && P.region !== 'recepcao') { this.sinceNear = 0; const t = randomCellNear(P.pos, 9); if (t) { this.setState('investigate'); this.goTo(t); break; } }
           this.goTo(choosePatrol()); this.pause = rand(0.8, 3);
@@ -2102,6 +2138,14 @@ function animateCreature(dt, time) {
     ar.sh.rotation.x = sx; ar.sh.rotation.z = ar.s * (0.12 + a.burn * 0.35); ar.el.rotation.x = el;
   });
   C.straps.forEach((s, i) => { s.rotation.x = Math.sin(time * 2 + i) * 0.15 - AI.anim.lean * 0.3; });
+  // nas galerias ele rasteja de quatro, braços na frente
+  { const rg = regionAt(...cellOf(AI.pos)); a.crawl = lerp(a.crawl || 0, UNDER.has(rg) && rg !== 'patio' && st !== 'sunwalk' && st !== 'dying' ? 1 : 0, dt * 3); }
+  if (a.crawl > 0.02) {
+    const k = a.crawl;
+    C.hips.position.y = lerp(C.hips.position.y, 0.7 + Math.abs(Math.sin(ph)) * 0.04 * sw, k); C.spine.rotation.x = lerp(C.spine.rotation.x, 1.38, k); C.neck.rotation.x = lerp(C.neck.rotation.x, -1.2, k);
+    C.arms.forEach((ar, i) => { const p = ph + (i ? 0 : Math.PI); ar.sh.rotation.x = lerp(ar.sh.rotation.x, -1.55 + Math.sin(p) * 0.5 * sw, k); ar.el.rotation.x = lerp(ar.el.rotation.x, -0.3 + Math.max(0, Math.sin(p)) * -0.45 * sw, k); });
+    C.legs.forEach((l, i) => { const p = ph + (i ? Math.PI : 0); l.th.rotation.x = lerp(l.th.rotation.x, -1.0 + Math.sin(p) * 0.4 * sw, k); l.knee.rotation.x = lerp(l.knee.rotation.x, 1.6 + Math.max(0, -Math.sin(p)) * 0.4 * sw, k); });
+  }
   // passos audíveis
   const stepPh = Math.floor(ph / Math.PI);
   if (stepPh !== AI.lastStepPhase && spd > 0.3) { AI.lastStepPhase = stepPh; SFX.cStep(chase); }
@@ -2112,15 +2156,19 @@ function animateCreature(dt, time) {
    --------------------------------------------------------------- */
 addEventListener('keydown', e => {
   if (UI.modal) { if (e.code === 'Tab') e.preventDefault(); if (!e.repeat && (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space' || e.code === 'Escape')) closeModal(); if (UI.modal === 'doc' && (e.code === 'KeyS' || e.code === 'ArrowDown')) $('doc_p').scrollTop += 60; if (UI.modal === 'doc' && (e.code === 'KeyW' || e.code === 'ArrowUp')) $('doc_p').scrollTop -= 60; return; }
-  if (e.code === 'Tab') { e.preventDefault(); if (playing) showMap(true); }
+  if (e.code === 'Tab') { e.preventDefault(); if (playing) { if (OPT.hard) { if (!e.repeat) msg('Modo Pesadelo: sem mapa.', 1.5); } else showMap(true); } }
   if (e.repeat) return;
   keys[e.code] = true;
   if (!playing || paused || P.dead) return;
   if (e.code === 'Escape' && document.pointerLockElement !== canvas) { pauseGame(); return; }
+  if (MODE === 'cut') return;
+  if (e.code === 'KeyF' && OPT.noLight) { msg('Modo Sem Lanterna.', 1.5); return; }
   if (e.code === 'KeyF' && !P.hidden) { fl.on = !fl.on; SFX.click(); TORCH.clickT = 0.16; }
   if (e.code === 'KeyC' || e.code === 'ControlLeft') P.crouch = !P.crouch;
   if (e.code === 'KeyV') msg(cycleShake(), 1.5);
   if (e.code === 'KeyT' && TP.n) stopTape(false);
+  if (e.code === 'KeyG') throwItem('flare');
+  if (e.code === 'KeyQ') throwItem('bottle');
   if (e.code === 'KeyE') { eHeld = true; pressInteract(); }
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'KeyE') { eHeld = false; installT = 0; } if (e.code === 'Tab') showMap(false); });
@@ -2154,12 +2202,14 @@ $('again').onclick = () => location.reload();
 let MODE = 'splash';           // splash | menu | intro | game
 function loadJ(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
 function saveJ(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
-const OPT = Object.assign({ vol: 80, sens: 100, bright: 100, shake: 0, subs: true, narr: true }, loadJ('formol_opts') || {});
+const OPT = Object.assign({ vol: 80, sens: 100, bright: 100, shake: 0, subs: true, narr: true, hard: false, gfx: 2, noLight: false }, loadJ('formol_opts') || {});
 function applyOpts() {
   CAM.li = OPT.shake; CAM.level = SHAKE_LEVELS[OPT.shake][0];
   if (A.master) A.master.gain.setTargetAtTime(OPT.vol / 100 * 0.9, A.ctx.currentTime, 0.05);
   $('o_vol').value = OPT.vol; $('o_sens').value = OPT.sens; $('o_bright').value = OPT.bright;
-  $('o_shake').textContent = SHAKE_LEVELS[OPT.shake][1]; $('o_subs').textContent = OPT.subs ? 'LIGADAS' : 'DESLIGADAS'; $('o_narr').textContent = OPT.narr ? 'LIGADA' : 'DESLIGADA';
+  $('o_shake').textContent = SHAKE_LEVELS[OPT.shake][1]; $('o_subs').textContent = OPT.subs ? 'LIGADAS' : 'DESLIGADAS'; $('o_narr').textContent = OPT.narr ? 'LIGADA' : 'DESLIGADA'; $('o_hard').textContent = OPT.hard ? 'PESADELO' : 'NORMAL';
+  $('o_gfx').textContent = ['BAIXA', 'MÉDIA', 'ALTA'][OPT.gfx]; $('o_nolight').textContent = !loadJ('formol_beaten') ? 'BLOQUEADO — ZERE O JOGO' : OPT.noLight ? 'SEM LANTERNA' : 'NORMAL';
+  setTimeout(applyGfx, 0);
   saveJ('formol_opts', OPT);
 }
 $('o_vol').oninput = e => { OPT.vol = +e.target.value; applyOpts(); };
@@ -2168,6 +2218,17 @@ $('o_bright').oninput = e => { OPT.bright = +e.target.value; applyOpts(); };
 $('o_shake').onclick = () => { OPT.shake = (OPT.shake + 1) % SHAKE_LEVELS.length; applyOpts(); uiSfx('sel'); };
 $('o_subs').onclick = () => { OPT.subs = !OPT.subs; applyOpts(); uiSfx('sel'); };
 $('o_narr').onclick = () => { OPT.narr = !OPT.narr; applyOpts(); uiSfx('sel'); };
+$('o_gfx').onclick = () => { OPT.gfx = (OPT.gfx + 1) % 3; applyOpts(); uiSfx('sel'); };
+$('o_nolight').onclick = () => { if (!loadJ('formol_beaten')) { uiSfx('hover'); return; } OPT.noLight = !OPT.noLight; applyOpts(); uiSfx('sel'); };
+let gfxApplied = -1;
+function applyGfx() {
+  const q = OPT.gfx; if (gfxApplied === q) return; gfxApplied = q;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, [0.7, 1, 1.25][q])); renderer.setSize(innerWidth, innerHeight); ppResize();
+  const sh = q > 0; flash.castShadow = sh;
+  if (renderer.shadowMap.enabled !== sh) { renderer.shadowMap.enabled = sh; scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => { m.needsUpdate = true; }); }); }
+  const ms = q === 2 ? 2048 : 1024; if (flash.shadow.mapSize.x !== ms) { flash.shadow.mapSize.set(ms, ms); if (flash.shadow.map) { flash.shadow.map.dispose(); flash.shadow.map = null; } }
+}
+$('o_hard').onclick = () => { OPT.hard = !OPT.hard; applyOpts(); uiSfx(OPT.hard ? 'start' : 'sel'); };
 
 /* ---------- narrador: falas gravadas (ElevenLabs, voz masculina) embutidas como MP3 ---------- */
 const sleep = ms => new Promise(r => { const t0 = performance.now(); const iv = setInterval(() => { if (CINE.skip || performance.now() - t0 >= ms) { clearInterval(iv); r(); } }, 30); });
@@ -2196,7 +2257,9 @@ async function decodeAssets() {
   const dec = async b64 => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return await A.ctx.decodeAudioData(u.buffer); };
   const ASSETS = window.FORMOL_AUDIO || {};
   A.narr = []; A.steps = {}; A.radio = []; A.tapes = {};
-  const keys = Object.keys(ASSETS), bufs = await Promise.all(keys.map(k => dec(ASSETS[k]).catch(e => { console.warn('audio', k, e); return null; })));
+  const keys = Object.keys(ASSETS); let nDone = 0;
+  const showLoad = () => { const el = $('loadInfo'); if (el) el.textContent = nDone < keys.length ? `CARREGANDO ÁUDIO ${Math.round(nDone / keys.length * 100)}%` : ''; };
+  const bufs = await Promise.all(keys.map(k => dec(ASSETS[k]).then(b => { nDone++; showLoad(); return b; }).catch(e => { nDone++; showLoad(); console.warn('audio', k, e); return null; })));
   for (let ki = 0; ki < keys.length; ki++) {
     const k = keys[ki];
     try {
@@ -2253,7 +2316,7 @@ function bindList(ul, onAct) {
   };
 }
 let openPanel = null;
-function showPanel(id) { ['p_opts', 'p_ctrls', 'p_credits', 'p_chaps', 'p_tapes'].forEach(p => $(p).style.display = 'none'); openPanel = id; $('menu').style.zIndex = MODE === 'game' ? 27 : ''; if (id) { $(id).style.display = 'block'; if (MODE === 'game') { $('menu').style.display = 'block'; $('menu').querySelector('.side').style.visibility = 'hidden'; $('menu').querySelector('.foot').style.visibility = 'hidden'; $('menu').style.background = 'none'; } } else if (MODE === 'game') $('menu').style.display = 'none'; }
+function showPanel(id) { ['p_opts', 'p_ctrls', 'p_credits', 'p_chaps', 'p_tapes', 'p_extras'].forEach(p => $(p).style.display = 'none'); openPanel = id; $('menu').style.zIndex = MODE === 'game' ? 27 : ''; if (id) { $(id).style.display = 'block'; if (MODE === 'game') { $('menu').style.display = 'block'; $('menu').querySelector('.side').style.visibility = 'hidden'; $('menu').querySelector('.foot').style.visibility = 'hidden'; $('menu').style.background = 'none'; } } else if (MODE === 'game') $('menu').style.display = 'none'; }
 const mainNav = bindList($('mainItems'), act => {
   if (act === 'new') newGame();
   if (act === 'cont') continueGame();
@@ -2261,6 +2324,7 @@ const mainNav = bindList($('mainItems'), act => {
   if (act === 'ctrls') showPanel('p_ctrls');
   if (act === 'credits') showPanel('p_credits');
   if (act === 'chaps') { refreshChapters(); showPanel('p_chaps'); }
+  if (act === 'extras') openExtras();
 });
 document.querySelectorAll('#chapItems li').forEach(li => {
   li.addEventListener('mouseenter', () => { if (!li.classList.contains('dis')) uiSfx('hover'); });
@@ -2290,7 +2354,7 @@ let pausedAt = 0;
 function pauseGame() { pausedAt = performance.now(); paused = true; document.body.classList.add('paused'); $('pause').style.display = 'block'; pauseNav.first();  }
 addEventListener('keydown', e => {
   if (MODE === 'splash') { if (e.code !== 'Tab') enterMenu(); return; }
-  if (MODE === 'intro') { if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') { CINE.holding = true; $('skip').style.opacity = 0.9; } return; }
+  if (MODE === 'intro' || MODE === 'cut') { if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') { CINE.holding = true; $('skip').style.opacity = 0.9; } return; }
   const nav = MODE === 'menu' ? mainNav : (paused && $('pause').style.display === 'block') ? pauseNav : null;
   if (!nav) return;
   if (openPanel) { if (e.code === 'Escape' || e.code === 'Backspace') { showPanel(null); uiSfx('hover'); } return; }
@@ -2299,7 +2363,7 @@ addEventListener('keydown', e => {
   if (e.code === 'Enter' || e.code === 'Space') nav.enter();
   if (e.code === 'Escape' && MODE === 'game' && paused && performance.now() - pausedAt > 200) resumeGame();
 });
-addEventListener('keyup', e => { if (MODE === 'intro' && (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape')) CINE.holding = false; });
+addEventListener('keyup', e => { if ((MODE === 'intro' || MODE === 'cut') && (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape')) CINE.holding = false; });
 
 /* ---------- progresso salvo ---------- */
 function applyProgress(sv) {
@@ -2314,7 +2378,7 @@ function applyProgress(sv) {
     sv.tapes = (sv.tapes || []).map(t => t + 2); if (sv.killed) { sv.ch = 4; sv.burned = true; } if (sv.card && (sv.ch || 1) < 3) sv.ch = 3;
   }
   PROG.ch = sv.ch || 1; PROG.tapes = sv.tapes || []; PROG.office = !!sv.office; PROG.card = !!sv.card; PROG.fotoOpen = !!sv.fotoOpen; PROG.lamps = sv.lamps || [];
-  PROG.burned = !!sv.burned; PROG.visitedGal = !!sv.visitedGal; PROG.crank = !!sv.crank; PROG.gateOpen = !!sv.gateOpen; PROG.metCeleste = PROG.celesteQueued = !!sv.met;
+  PROG.burned = !!sv.burned; PROG.visitedGal = !!sv.visitedGal; PROG.crank = !!sv.crank; PROG.gateOpen = !!sv.gateOpen; PROG.heard7 = !!sv.heard7; PROG.metCeleste = PROG.celesteQueued = !!sv.met;
   if (PROG.card && PROG.ch < 3) PROG.ch = 3;
   if (PROG.ch >= 2) { panel.setLever(true); openDoor(DOORS.fogo, true); exitDoor.sign.material.emissive.set(0x5a0a08); exitDoor.sign.material.emissiveIntensity = 1; }
   TAPES.forEach(t => { if (PROG.tapes.includes(t.n)) { t.active = false; t.mesh.visible = false; } });
@@ -2432,7 +2496,8 @@ function startGame() {
   P.pos.copy(spawnPoint()); P.yaw = PROG.ch >= 2 ? -Math.PI / 2 : 0; P.pitch = 0; fl.on = true;
   playing = true; stats.t0 = performance.now(); P.region = '';
   if (document.pointerLockElement !== canvas) { lock(); if (!noLock) msg('Clique na tela para controlar a câmera.', 4); }
-  showChapter(PROG.ch, () => { if (PROG.ch === 1) msg(P.installed ? `Checkpoint carregado: ${P.installed}/5 fusíveis no painel.` : 'A porta está travada. O painel precisa de 5 fusíveis.', 5); else if (PROG.ch === 4) msg(PROG.gateOpen ? 'O portão do pátio está aberto. Sobreviva até o amanhecer.' : 'A rede caiu. Só restam as luzes de emergência.', 4); });
+  chapterBegin(PROG.ch); STATS.seen = 0;
+  showChapter(PROG.ch, () => { if (PROG.ch === 1 && !P.installed) eliasSay(0, 1.5); if (PROG.ch === 1) msg(P.installed ? `Checkpoint carregado: ${P.installed}/5 fusíveis no painel.` : 'A porta está travada. O painel precisa de 5 fusíveis.', 5); else if (PROG.ch === 4) msg(PROG.gateOpen ? 'O portão do pátio está aberto. Sobreviva até o amanhecer.' : 'A rede caiu. Só restam as luzes de emergência.', 4); });
 }
 function newGame() { saveJ('formol_save', null); uiSfx('start'); lock(); runIntro(); }
 function continueGame() { const sv = loadJ('formol_save'); if (!sv) return; applyProgress(sv); uiSfx('start'); lock(); $('menu').style.display = 'none'; $('fade').style.opacity = 1; setTimeout(() => { startGame(); $('fade').style.opacity = 0; }, 900); }
@@ -2468,6 +2533,10 @@ function promptFor(it) {
     case 'lamp': return '[E] pegar lâmpada de arco';
     case 'card': return '[E] revistar o corpo do Dr. Varela';
     case 'crank': return '[E] pegar a manivela do portão';
+    case 'phone': return '[E] atender o telefone';
+    case 'flare': return '[E] pegar sinalizador';
+    case 'bottle': return '[E] pegar garrafa vazia';
+    case 'foto': return '[E] pegar fotografia';
     case 'street': return '[E] sair para a rua';
     case 'exit': return PROG.ch >= 4 ? 'Porta blindada — travada de vez pela sobrecarga' : 'Porta blindada — TRAVA DE SEGURANÇA ATIVA';
     case 'door':
@@ -2494,13 +2563,17 @@ function promptFor(it) {
 function pressInteract() {
   const it = findInteract(); if (!it) return;
   if (it.type === 'unhide') return unhide();
-  if (it.type === 'fuse') { it.active = false; it.mesh.visible = false; P.carry.push(it); SFX.pickup(); emitNoise(it.pos, CFG.noise.pickup, 2); msg(`Fusível ${it.n} — leve ao painel na recepção.`, 3); updateCarried(); silenceAmbience(1); }
-  if (it.type === 'battery') { it.active = false; it.mesh.visible = false; fl.battery = Math.min(100, fl.battery + 35); SFX.pickup(); msg('+35% de bateria', 2); }
+  if (it.type === 'fuse') { eliasSay(1, 1.2); it.active = false; it.mesh.visible = false; P.carry.push(it); SFX.pickup(); emitNoise(it.pos, CFG.noise.pickup, 2); msg(`Fusível ${it.n} — leve ao painel na recepção.`, 3); updateCarried(); silenceAmbience(1); }
+  if (it.type === 'battery') { it.active = false; it.mesh.visible = false; const gain = OPT.hard ? 20 : 35; fl.battery = Math.min(100, fl.battery + gain); SFX.pickup(); msg(`+${gain}% de bateria`, 2); }
   if (it.type === 'note') { SFX.click(); showDoc(it.title, it.text); }
   if (it.type === 'tape') takeTape(it);
   if (it.type === 'lamp') { it.active = false; it.mesh.visible = false; P.lamps.push(it); SFX.pickup(); emitNoise(it.pos, CFG.noise.pickup, 2); msg('Lâmpada de arco — leve ao console da Sala de Fototerapia.', 3); updateCarried(); setTimeout(() => lastLampToChapel(false), 3500); }
   if (it.type === 'card') takeCard();
   if (it.type === 'crank') takeCrank(it);
+  if (it.type === 'phone') answerPhone();
+  if (it.type === 'flare') { it.active = false; it.mesh.visible = false; P.flares++; SFX.pickup(); msg('Sinalizador. [G] acende e joga: ele não chega perto da luz vermelha.', 3.5); }
+  if (it.type === 'bottle') { it.active = false; it.mesh.visible = false; P.bottles++; SFX.pickup(); msg('Garrafa vazia. [Q] joga longe e faz barulho para distraí-lo.', 3.5); }
+  if (it.type === 'foto') { it.active = false; it.mesh.visible = false; SFX.click(); noteExtra('fotos', it.n); showDoc(FOTOS[it.n][0], FOTOS[it.n][1], 'photo'); }
   if (it.type === 'street') { stopTape(false); win(); }
   if (it.type === 'exit') tone({ f: 160, type: 'square', peak: 0.06, d: 0.3 });
   if (it.type === 'door') { if (it.door.key === 'office') useKeypad(); else if (it.door.key === 'foto' || it.door.key === 'foto2') useReader(); else if (it.door.key === 'patio' && !PROG.crank) msg('O mecanismo do portão precisa de uma manivela. A Celeste falou do quarto dela.', 3); else if (it.door.key !== 'patio') tone({ f: 160, type: 'square', peak: 0.06, d: 0.25 }); }
@@ -2550,12 +2623,17 @@ function startIgnition() {
 function killPlayer(kind) {
   if (P.dead) return; P.dead = true; stats.deaths++;
   if (P.hidden) { spotVisual(P.hidden, false); P.pos.copy(spotFront(P.hidden)); P.hidden = null; $('hide').style.opacity = 0; }
-  SFX.scream(1.6); burst({ f: 200, q: 0.5, peak: 0.9, d: 0.6 });
-  P.deathT = 0;
+  SFX.scream(1.6); burst({ f: 200, q: 0.5, peak: 0.9, d: 0.6 }); boom(); if (A.sfx_agarrao) playBuf(A.sfx_agarrao, { gain: 1.5 }); else burst({ f: 3500, q: 0.8, peak: 0.7, a: 0.002, d: 0.4 });
+  // posiciona a criatura colada no rosto do jogador
+  const cp = camera.position, dx = AI.pos.x - cp.x, dz = AI.pos.z - cp.z, dl = Math.hypot(dx, dz) || 1;
+  AI.pos.set(cp.x + dx / dl * 1.15, 0, cp.z + dz / dl * 1.15); AI.yaw = Math.atan2(cp.x - AI.pos.x, cp.z - AI.pos.z);
+  C.root.position.set(AI.pos.x, 0, AI.pos.z); C.root.rotation.set(0, AI.yaw, 0); C.root.visible = true; C.spine.rotation.x = 0.85; C.neck.rotation.x = -0.2; C.head.rotation.set(0.2, 0, 0.35);
+  C.arms.forEach(a => { a.sh.rotation.x = -1.9; a.el.rotation.x = -0.6; });
+  P.deathT = 0; $('fade').style.transition = 'none'; PHANTOM.visible = false;
 }
 function respawn() {
   if (P.vel) P.vel.set(0, 0, 0); CAM.trauma = 0;
-  P.dead = false; P.pos.copy(spawnPoint()); P.yaw = 0; P.pitch = 0; P.crouch = false; P.stamina = 1;
+  P.dead = false; P.pos.copy(spawnPoint()); AI.ambushWait = 0; AI.ambush = false; P.yaw = 0; P.pitch = 0; P.crouch = false; P.stamina = 1;
   P.installed = checkpoint.installed; fl.battery = checkpoint.battery; fl.on = true;
   const lostLamps = P.lamps.length;
   P.carry.forEach(f => { f.active = true; f.mesh.visible = true; }); P.carry = [];
@@ -2568,7 +2646,7 @@ function respawn() {
   AI.ignition = false; AI.level = levelFor(); AI.lightExp = 0; C.root.visible = true; C.root.rotation.x = 0;
   if (PROG.ch === 4 && PROG.gateOpen && DAWN.phase !== 'sun') { DAWN.phase = 'run'; DAWN.t = 0; AI.ignition = true; AI.grace = 6; }
   panel.setLever(PROG.ch >= 2); A.sirenG && A.sirenG.gain.setTargetAtTime(0, A.ctx.currentTime, 0.2);
-  $('fade').style.opacity = 0; paused = false;
+  $('fade').style.transition = ''; $('fade').style.opacity = 0; paused = false; FEAR = 0; PHANTOM.visible = false; C.spine.rotation.x = 0;
   hideSpots.forEach(closeSpot);
   {
     exitDoor.opening = false; exitDoor.open = 0; exitDoor.mesh.position.y = CFG.wallH / 2; grid[idx(21, 26)] = 'X'; grid[idx(22, 26)] = 'X'; rebuildBlocked();
@@ -2584,7 +2662,7 @@ function win() {
   P.won = true; document.exitPointerLock(); saveJ('formol_save', null);
   const t = (performance.now() - stats.t0) / 1000;
   $('win_sub').textContent = `TEMPO ${Math.floor(t / 60)}m${String(Math.floor(t % 60)).padStart(2, '0')}s · MORTES ${stats.deaths} · FITAS ${PROG.tapes.length}/${Object.keys(TAPEDATA).length}`; saveJ('formol_unlocked', 4);
-  $('win').style.display = 'flex'; SFX.birds(); setInterval(SFX.birds, 2500);
+  $('win').style.display = 'flex'; winExtras(); SFX.birds(); setInterval(SFX.birds, 2500);
   if (A.ctx) { A.sirenG.gain.value = 0; A.tension.gain.value = 0; A.chase.gain.value = 0; A.growlG.gain.value = 0; A.ambG.gain.value = 0.05; }
 }
 
@@ -2593,7 +2671,7 @@ function win() {
    FITAS CASSETE — tocadas no walkman do Elias (vozes geradas na ElevenLabs)
    V = Dr. Antônio Varela · T = Tomás Aurélio Reis · C = Celeste · O = vigia Osmar
    --------------------------------------------------------------- */
-const VOICES = { V: ['DR. VARELA', 'JBFqnCBsd6RMkjVDRZzb'], T: ['TOMÁS', 'TX3LPaxmHKxFdv7VOQHJ'], C: ['CELESTE', 'XrExE9yKIg1WjnnlVkGX'], O: ['OSMAR', 'pqHfZKP75CvOlQylNhV4'] };
+const VOICES = { P: ['SR. REIS (PAI)', 'onwK4e9ZLuTAKqWW03F9'], V: ['DR. VARELA', 'JBFqnCBsd6RMkjVDRZzb'], T: ['TOMÁS', 'TX3LPaxmHKxFdv7VOQHJ'], C: ['CELESTE', 'XrExE9yKIg1WjnnlVkGX'], O: ['OSMAR', 'pqHfZKP75CvOlQylNhV4'] };
 const TAPEDATA = {
   1: { ch: 1, title: 'FITA 1 — GRAVADOR DO VIGIA · 03/11/1987, 01h40', lines: [
     ['O', 'Uma e quarenta. O rádio está mudo de novo. Vou deixar isso gravado, caso alguém pergunte depois.'],
@@ -2644,7 +2722,13 @@ const TAPEDATA = {
     ['T', 'Gravei escondido. O gravador do doutor ficou na câmara.'],
     ['T', 'Hoje a mulher da comida cantou baixinho do outro lado da porta. Era a música que a minha mãe cantava quando fechava as cortinas.'],
     ['T', 'Eu acho que é ela. Eu acho que ela veio me buscar.'],
-    ['T', 'Mãe, se for você... abre a porta. Eu não ligo pra luz. Eu só quero ir pra casa.']] }
+    ['T', 'Mãe, se for você... abre a porta. Eu não ligo pra luz. Eu só quero ir pra casa.']] },
+  9: { ch: 1, title: 'FITA 9 — TELEFONEMA DO PAI · 1982 (ESCONDERIJO DO VIGIA)', lines: [
+    ['P', 'Doutor Varela? Aqui é o pai do Tomás. Recebi a carta. Pode fazer o que achar necessário.'],
+    ['V', 'O tratamento é longo, senhor Reis. Ele vai pedir para voltar para casa.'],
+    ['P', 'Ele não tem casa. A mãe dele foi embora. Se ele perguntar, diga que ninguém vem buscar.'],
+    ['V', 'E a sua esposa? Ela sabe onde ele está?'],
+    ['P', 'Não. E é melhor que continue assim.']] }
 };
 const RADIO_NEW = [
   [9, 'Eu destranquei a capela. O doutor escondeu as lâmpadas dele: no crematório, no altar... e no frio do necrotério, onde ele dormiu.'],
@@ -2673,7 +2757,7 @@ const CHAPTERS = {
 };
 const CH_NAMES = ['', 'APAGÃO', 'NOITE LONGA', 'FORMOL', 'AMANHECER'];
 function saveProgress() {
-  saveJ('formol_save', { v: 2, ch: PROG.ch, ids: P.installedIds, tapes: PROG.tapes, office: PROG.office, card: PROG.card, fotoOpen: PROG.fotoOpen, lamps: PROG.lamps, burned: PROG.burned, visitedGal: PROG.visitedGal, crank: PROG.crank, gateOpen: PROG.gateOpen, met: !!PROG.metCeleste });
+  saveJ('formol_save', { v: 2, ch: PROG.ch, ids: P.installedIds, tapes: PROG.tapes, office: PROG.office, card: PROG.card, fotoOpen: PROG.fotoOpen, lamps: PROG.lamps, burned: PROG.burned, visitedGal: PROG.visitedGal, crank: PROG.crank, gateOpen: PROG.gateOpen, heard7: !!PROG.heard7, met: !!PROG.metCeleste });
   unlockChapter(PROG.ch);
 }
 function unlockChapter(n) { const u = loadJ('formol_unlocked') || 1; if (n > u) saveJ('formol_unlocked', n); }
@@ -2763,11 +2847,13 @@ function stopTape(ended) {
 }
 function onTapeEnd(n) {
   if (MANDATORY_TAPES.includes(n) && PROG.ch === 2) { const k = MANDATORY_TAPES.filter(t => PROG.tapes.includes(t)).length; msg(k >= 3 ? 'Doze, zero três. O código do escritório: 1-2-0-3.' : `Sessões do Dr. Varela: ${k}/3`, 4); }
-  if (n === 7 && PROG.ch === 4) radio([13]);
+  if (n === 5) eliasSay(5, 0.6);
+  if (n === 7) { PROG.heard7 = true; saveProgress(); }
+  if (n === 7 && PROG.ch === 4) { eliasSay(10, 0.4); setTimeout(() => radio([13]), 4000); }
 }
 function takeTape(it) {
   it.active = false; it.mesh.visible = false; if (!PROG.tapes.includes(it.n)) PROG.tapes.push(it.n);
-  saveProgress(); setCheckpoint(); SFX.click(); msg('Você coloca a fita no walkman.', 2);
+  saveProgress(); setCheckpoint(); SFX.click(); msg('Você coloca a fita no walkman.', 2); noteExtra('fitas', it.n);
   playTape(it.n);
 }
 function openTapeList() {
@@ -2862,12 +2948,12 @@ function endChapter1() {
   PROG.ch = 2; AI.ignition = false; AI.ignT = 0; AI.level = 3;
   if (A.sirenG) A.sirenG.gain.setTargetAtTime(0, A.ctx.currentTime, 0.6);
   exitDoor.sign.material.emissive.set(0x5a0a08); exitDoor.sign.material.emissiveIntensity = 1;
-  SFX.door(); addTrauma(0.35); AI.flee(12, true);
+  SFX.door(); addTrauma(0.35); AI.flee(12, true); eliasSay(3, 1.5); chapterEnd(1); chapterBegin(2);
   msg('A porta blindada não se move. No visor: TRAVA DE SEGURANÇA — AUTORIZAÇÃO DA DIRETORIA.', 5);
   saveProgress(); setCheckpoint();
   setTimeout(() => {
     openDoor(DOORS.fogo); SFX.clank({ x: 43 * CS, y: 2, z: 14 * CS }); applyLights();
-    radio([0, 1, 2, 3], () => { if (!P.dead) showChapter(2); });
+    radio([0, 1, 2, 3], () => { if (!P.dead) cutscene(CUTS.fogo, () => showChapter(2)); });
   }, 5200);
 }
 // ---------- capítulo II ----------
@@ -2878,13 +2964,14 @@ function useKeypad() {
 }
 function takeCard() {
   CARD.active = false; CARD.mesh.visible = false; PROG.card = true; SFX.pickup(); saveProgress();
-  showDoc(LETTER[0], LETTER[1], 'letter', () => startChapter3());
+  chapterEnd(2); chapterBegin(3);
+  showDoc(LETTER[0], LETTER[1], 'letter', () => cutscene(CUTS.varela, startChapter3));
 }
 // ---------- capítulo III ----------
 function startChapter3() {
   PROG.ch = 3; LAMPS.forEach(l => { if (!PROG.lamps.includes(l.n)) { l.active = true; l.mesh.visible = true; } });
   AI.level = 4; openDoor(DOORS.capela); applyLights(); saveProgress(); setCheckpoint();
-  showChapter(3, () => { radio([9]); setTimeout(() => SFX.scream(2), 700); AI.lastKnown = P.pos.clone(); AI.setState('hunt'); AI.goTo(P.pos, false); });
+  showChapter(3, () => { radio([9]); eliasSay(7, 9); setTimeout(() => SFX.scream(2), 700); AI.lastKnown = P.pos.clone(); AI.setState('hunt'); AI.goTo(P.pos, false); });
 }
 function useReader() {
   if (!PROG.card) { tone({ f: 180, type: 'square', peak: 0.08, d: 0.3 }); msg('ACESSO RESTRITO À DIRETORIA CLÍNICA.', 2.5); return; }
@@ -2916,7 +3003,8 @@ function burnCreature() {   // ele queima… e foge pelo alçapão do crematóri
   }, 5200);
   setTimeout(() => {   // o QG-1 não aguenta a sobrecarga: o prédio volta ao escuro
     boom(); PROG.ch = 4; applyLights(); openDoor(DOORS.grade); saveProgress(); setCheckpoint();
-    radio([7, 10, 11], () => { if (!P.dead) showChapter(4, startChapter4); });
+    chapterEnd(3); chapterBegin(4);
+    radio([7, 10, 11], () => { if (!P.dead) cutscene(CUTS.alcapao, () => showChapter(4, startChapter4)); });
   }, 8500);
 }
 // ---------- capítulo IV ----------
@@ -2933,14 +3021,16 @@ function startDawnRun() {
   PROG.gateOpen = true; openDoor(DOORS.patio); saveProgress(); setCheckpoint();
   DAWN.phase = 'run'; DAWN.t = 0; AI.ignition = true; AI.grace = 0; AI.lastKnown = P.pos.clone(); AI.setState('chase');
   moon.on = true; computeLightGrid(); emitNoise(P.pos, 80, 3);
-  radio([14]);
+  radio([14]); eliasSay(11, 4);
 }
 function sunrise() {
   DAWN.phase = 'sun'; AI.ignition = false; AI.state = 'sunwalk'; AI.path = []; AI.t = 0; AI.goTo(center(30, 46), false);
-  STREET.active = true; scene.background = new THREE.Color(0x2a2a3a);
+  STREET.active = true; scene.background = new THREE.Color(0x2a2a3a); SUN.castShadow = OPT.gfx === 2;
   msg('06:04.', 3);
   setTimeout(() => msg('O sol nasce sobre o pátio. Ele para. Pela primeira vez em cinco anos, ele vê o dia.', 6), 3000);
-  setTimeout(() => radio([15, 16], () => radio([8], null, true), true), 6500);
+  if (PROG.heard7) { setTimeout(() => radio([15, 16], () => radio([8], null, true), true), 6500); eliasSay(12, 15); }
+  else { CELESTE.visible = false; setTimeout(() => msg('Não há ninguém no pátio esperando por ele.', 5), 9500); eliasSay(13, 16); }
+  setMusic('mus_dawn', 0.22);
 }
 
 /* ---------------------------------------------------------------
@@ -2962,6 +3052,450 @@ function playChapter(n) {
   saveJ('formol_save', chapterStartSave(n)); showPanel(null); continueGame();
 }
 
+
+/* ---------------------------------------------------------------
+   TERROR — sustos roteirizados (com silêncio antes), vozes da criatura,
+   imitação da Celeste, medo/alucinações, objetos que fazem barulho,
+   lanterna que falha perto dele, modo Pesadelo
+   --------------------------------------------------------------- */
+let HUSH = 0, FEAR = 0;
+const SCARE = { done: new Set(), t: 0, phantomCD: 30, fakeCD: 20, voiceCD: 12, mimicCD: 90 };
+function hush(sec) { HUSH = sec; silenceAmbience(sec + 0.5); }
+// toca um buffer gravado (voz/efeito) com opções: posição 3D, tom, eco, filtro de telefone, trecho
+function playBuf(buf, o = {}) {
+  if (!A.ctx || !buf) return null; const ctx = A.ctx, src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = o.rate || 1;
+  let node = src;
+  if (o.phone) { const a = ctx.createBiquadFilter(), b = ctx.createBiquadFilter(); a.type = 'highpass'; a.frequency.value = 350; b.type = 'lowpass'; b.frequency.value = 3100; node.connect(a).connect(b); node = b; }
+  if (o.dark) { const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = o.dark; node.connect(lp); node = lp; }
+  const g = ctx.createGain(); g.gain.value = o.gain ?? 1; node.connect(g); let out = g;
+  if (o.pos) { const p = ctx.createPanner(); Object.assign(p, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: o.ref || 2.5, rolloffFactor: 1.1, maxDistance: 70 }); p.positionX.value = o.pos.x; p.positionY.value = o.pos.y ?? 1.5; p.positionZ.value = o.pos.z; g.connect(p); out = p; }
+  out.connect(A.master); if (o.verb) { const sd = ctx.createGain(); sd.gain.value = o.verb; out.connect(sd).connect(A.verb); }
+  if (o.dur) src.start(0, o.offset || 0, o.dur); else src.start(0, o.offset || 0);
+  return src;
+}
+// efeitos sintetizados (sem custo de API)
+const HB = k => A[k];   // buffer gravado, se carregou
+const HSFX = {
+  slam(pos) { if (HB('sfx_porta')) { playBuf(HB('sfx_porta'), { pos, gain: 1.4, verb: 0.6, ref: 4 }); addTrauma(0.5); return; } spatialOneShot(pos, p => { tone({ f: 70, f2: 28, peak: 0.9, d: 0.9, dest: p }); burst({ f: 180, type: 'lowpass', peak: 0.9, d: 0.7, dest: p }); for (const f of [420, 610, 980]) burst({ f, q: 30, peak: 0.35, d: 1.6, dest: p }); }); addTrauma(0.5); },
+  scratch(pos, len = 2.4) { if (HB('sfx_unhas')) { playBuf(HB('sfx_unhas'), { pos, gain: 1.1, verb: 0.4, dur: len + 0.4 }); return; } spatialOneShot(pos, p => { for (let i = 0; i < 7; i++) setTimeout(() => burst({ f: rand(3500, 6000), q: 6, peak: 0.25, a: 0.05, d: 0.28, dest: p }), i * len / 7 * 1000); }); },
+  squeak(pos) { if (HB('sfx_maca')) { playBuf(HB('sfx_maca'), { pos, gain: 1.2, verb: 0.5, ref: 4 }); return; } spatialOneShot(pos, p => { for (let i = 0; i < 6; i++) setTimeout(() => tone({ f: rand(1700, 2300), f2: rand(1500, 2600), peak: 0.07, d: 0.18, dest: p }), i * 380 + rand(0, 120)); }); },
+  drip(pos) { spatialOneShot(pos, p => tone({ f: rand(900, 1500), f2: rand(400, 700), peak: 0.12, d: 0.12, dest: p })); },
+  sniff(pos) { spatialOneShot(pos, p => { for (let i = 0; i < 3; i++) setTimeout(() => burst({ f: 1400, q: 1.2, peak: 0.35, a: 0.04, d: 0.16, dest: p }), i * 210); }); },
+  knock(pos) { spatialOneShot(pos, p => { for (let i = 0; i < 3; i++) setTimeout(() => { burst({ f: 220, q: 2, peak: 0.6, d: 0.12, dest: p }); tone({ f: 110, f2: 70, peak: 0.25, d: 0.1, dest: p }); }, i * 330); }); },
+  steps(pos, n = 3) { spatialOneShot(pos, p => { for (let i = 0; i < n; i++) setTimeout(() => burst({ f: 240, q: 1.4, peak: 0.45, d: 0.12, dest: p, rate: rand(.7, .9) }), i * 520); }); },
+  clatter(kind, pos) {
+    const rb = kind === 'tray' ? HB('sfx_bandeja') : HB('sfx_garrafa');
+    if (rb) { playBuf(rb, { pos, gain: 1.3, verb: 0.35, rate: kind === 'can' ? rand(1.2, 1.35) : rand(0.93, 1.07), ref: 3 }); return; }
+    spatialOneShot(pos, p => {
+    if (kind === 'bottle') { for (const f of [2300, 3150, 4100]) burst({ f, q: 40, peak: 0.25, d: 0.35, dest: p }); for (let i = 0; i < 5; i++) setTimeout(() => burst({ f: 2600, q: 8, peak: 0.12, d: 0.05, dest: p }), 120 + i * 130); }
+    else if (kind === 'tray') { for (const f of [540, 1210, 1830, 2570]) burst({ f, q: 50, peak: 0.4, d: 0.9, dest: p }); burst({ f: 3000, type: 'highpass', peak: 0.3, d: 0.08, dest: p }); }
+    else { for (const f of [800, 1650]) burst({ f, q: 25, peak: 0.3, d: 0.4, dest: p }); for (let i = 0; i < 4; i++) setTimeout(() => burst({ f: 1200, q: 6, peak: 0.12, d: 0.05, dest: p }), 100 + i * 110); }
+  }); }
+};
+// vozes da criatura: trechos do Tomás gravados nas fitas, mais graves e com eco
+const CREATURE_VOICES = [[6, 1], [6, 4], [3, 1], [2, 3]];
+const WHISPERS = ['voz_mae', 'voz_apaga', 'voz_apagaluz', 'voz_horas', 'voz_noite', 'voz_vendo'];
+function creatureVoice(pos, gain = 0.9) {
+  if (Math.random() < 0.3 && HB('sfx_rosnado')) { playBuf(HB('sfx_rosnado'), { pos, gain: gain * 1.2, verb: 0.5, rate: rand(0.85, 1), ref: 3 }); return; }
+  const w = HB(pick(WHISPERS));
+  if (w) { playBuf(w, { pos, rate: rand(0.78, 0.88), gain, verb: 0.8, dark: 2200, ref: 3 }); return; }
+  const [n, i] = pick(CREATURE_VOICES), buf = A.tapes && A.tapes[n] && A.tapes[n][i]; if (!buf) { HSFX.sniff(pos); return; } playBuf(buf, { pos, rate: rand(0.7, 0.8), gain, verb: 0.7, dark: 1800, ref: 3 });
+}
+
+// ---------- objetos do cenário para os sustos ----------
+// gaveta 7 do necrotério (sai da parede da câmara fria)
+const DRAWER = new THREE.Group();
+{
+  DRAWER.position.set(0 * CS + 2 - 0.95, 1.05, 22 * CS + 1); level.add(DRAWER);
+  box(1.9, 0.5, 0.95, M.steel, 0, 0, 0, DRAWER);
+  const lb = tex(64, 32, (g, w, h) => { g.fillStyle = '#d6cfb6'; g.fillRect(0, 0, w, h); g.fillStyle = '#111'; g.font = 'bold 22px monospace'; g.textAlign = 'center'; g.fillText('7', w / 2, 25); });
+  const l = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.08), new THREE.MeshStandardMaterial({ map: lb })); l.position.set(0.951, 0.1, 0); l.rotation.y = Math.PI / 2; DRAWER.add(l);
+  const sheet = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.8, 8, 4), M.sheet); sheet.rotation.x = -Math.PI / 2; sheet.position.y = 0.26; { const p = sheet.geometry.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, Math.random() * 0.04); sheet.geometry.computeVertexNormals(); } DRAWER.add(sheet);
+  DRAWER.userData.out = 0;
+}
+// telefone da recepção
+const PHONE = { ring: 0, it: null, answered: false, next: 0 };
+{
+  const g = new THREE.Group(); g.position.copy(center(24, 21)); g.position.y = 0; level.add(g);
+  box(0.6, 0.75, 0.45, M.wood, 0, 0.375, 0, g);   // mesinha
+  box(0.24, 0.08, 0.2, M.dark, 0, 0.79, 0, g); const hs = box(0.24, 0.05, 0.06, M.dark, 0, 0.86, 0, g);
+  const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.01, 16), M.steel); dial.position.set(0, 0.835, 0.05); g.add(dial);
+  props.push({ i: idx(24, 21), block: true }); rebuildBlocked();
+  PHONE.handset = hs; PHONE.pos = new THREE.Vector3(g.position.x, 0.8, g.position.z);
+  PHONE.it = { type: 'phone', pos: new THREE.Vector3(g.position.x, 0, g.position.z + 1.2), active: false }; interact.push(PHONE.it);
+}
+// vulto (alucinação): silhueta negra que some quando a luz encosta
+const PHANTOM = new THREE.Group();
+{
+  const mb = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.92 });
+  const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 1.5, 4, 10), mb); b.position.y = 1.15; b.scale.z = 0.6; PHANTOM.add(b);
+  const h = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), mb); h.position.set(0, 2.18, 0.05); h.scale.y = 1.3; PHANTOM.add(h);
+  for (const s of [-1, 1]) { const a = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 1.25, 3, 6), mb); a.position.set(s * 0.26, 1.05, 0); a.rotation.z = s * 0.08; PHANTOM.add(a); }
+  PHANTOM.visible = false; PHANTOM.userData = { t: 0, lit: 0 }; scene.add(PHANTOM);
+}
+// objetos soltos no chão: chutar faz barulho (agachado não)
+const DEBRIS = [];
+{
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0x2c4a2a, roughness: 0.15, transparent: true, opacity: 0.8 });
+  const cells = []; for (let z = 1; z < H - 1; z++) for (let x = 1; x < W - 1; x++) { const i = idx(x, z); if (blocked[i]) continue; const rg = regionAt(x, z); if (rg === 'rua' || rg === 'recepcao' || rg === 'patio') continue; cells.push([x, z, rg]); }
+  const nearItem = (x, z) => interact.some(it => Math.abs(Math.floor(it.pos.x / CS) - x) + Math.abs(Math.floor(it.pos.z / CS) - z) <= 1);
+  let n = 0;
+  for (let k = 0; k < 400 && n < 70; k++) {
+    const [x, z, rg] = pick(cells); if (nearItem(x, z)) continue;
+    const kind = pick(['bottle', 'bottle', 'tray', 'can']), c = center(x, z), g = new THREE.Group();
+    g.position.set(c.x + rand(-.6, .6), 0, c.z + rand(-.6, .6)); g.rotation.y = rand(0, 6.3);
+    if (kind === 'bottle') { const m = cyl(0.035, 0.035, 0.24, glass, 0, 0.035, 0, g, 8); m.rotation.z = Math.PI / 2; }
+    else if (kind === 'tray') { const m = box(0.45, 0.02, 0.32, M.steel, 0, 0.012, 0, g); m.rotation.z = rand(-.05, .05); for (let i = 0; i < 3; i++) { const t = box(0.12, 0.004, 0.02, M.steel, rand(-.15, .15), 0.025, rand(-.1, .1), g); t.rotation.y = rand(0, 3); } }
+    else { const m = cyl(0.033, 0.033, 0.12, M.rust, 0, 0.033, 0, g, 8); m.rotation.z = Math.PI / 2; }
+    level.add(g); DEBRIS.push({ g, kind, cd: 0, vx: 0, vz: 0 }); n++;
+  }
+}
+
+// ---------- sustos roteirizados ----------
+function scareOnce(key) { if (SCARE.done.has(key)) return false; SCARE.done.add(key); return true; }
+function facing(p, minDot = 0.35) { const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), dx = p.x - P.pos.x, dz = p.z - P.pos.z, d = Math.hypot(dx, dz) || 1; return (dx * fx + dz * fz) / d > minDot; }
+function updateScares(dt, time) {
+  const sinceStart = (performance.now() - stats.t0) / 1000;
+  // 1) gaveta 7 se abre sozinha
+  if (P.region === 'necroterio' && sinceStart > 50 && !SCARE.done.has('gaveta')) {
+    const dp = Math.hypot(P.pos.x - (DRAWER.position.x + 1), P.pos.z - DRAWER.position.z);
+    if (dp < 7 && facing(DRAWER.position, 0.25) && scareOnce('gaveta')) {
+      hush(2.8);
+      setTimeout(() => { playBuf(A.sfx_gaveta, { pos: DRAWER.position, gain: 1.4, verb: 0.4 }); DRAWER.userData.opening = true; puff(new THREE.Vector3(DRAWER.position.x + 1.2, 1.2, DRAWER.position.z), 6, false); }, 2600);
+      setTimeout(() => { const b = HB('voz_mae'); if (b) playBuf(b, { pos: DRAWER.position, rate: 0.8, gain: 0.8, verb: 1, dark: 1800 }); else { const t = A.tapes && A.tapes[6] && A.tapes[6][1]; if (t) playBuf(t, { pos: DRAWER.position, rate: 0.72, gain: 0.7, verb: 0.9, dark: 1500, dur: 0.9 }); } }, 5400);
+    }
+  }
+  if (DRAWER.userData.opening && DRAWER.userData.out < 1) { DRAWER.userData.out = Math.min(1, DRAWER.userData.out + dt / 2.6); DRAWER.position.x = 2 - 0.95 + DRAWER.userData.out * 1.25; }
+  // 2) o corpo some da maca (depois de pegar o fusível da gaveta 7)
+  if (!SCARE.done.has('maca') && P.region !== 'necroterio' && (P.carry.some(f => f.n === 4) || P.installedIds.includes(4))) SCARE.armMaca = true;
+  if (SCARE.armMaca && P.region === 'necroterio' && scareOnce('maca')) {
+    const bb = BODY_BEDS.find(b => b.x === 9 && b.z === 18) || BODY_BEDS[0];
+    if (bb) { bb.b.visible = false; setTimeout(() => HSFX.squeak(center(12, 24)), 1200); setTimeout(() => msg('A maca do meio está vazia. O lençol ainda está quente.', 4), 2500); }
+  }
+  // 3) o telefone da recepção toca (linha cortada desde 1984)
+  if (PROG.ch === 1 && P.installed >= 2 && !AI.ignition && P.region === 'recepcao' && sinceStart > 90 && scareOnce('telefone')) { hush(2); setTimeout(() => { PHONE.ring = 18; PHONE.it.active = true; }, 2200); }
+  if (PHONE.ring > 0) {
+    PHONE.ring -= dt; PHONE.next -= dt;
+    if (PHONE.next <= 0) { PHONE.next = 4.2; if (A.sfx_telefone) playBuf(A.sfx_telefone, { pos: PHONE.pos, gain: 1.1, verb: 0.3 }); else for (let i = 0; i < 2; i++) setTimeout(() => tone({ f: 440, type: 'square', peak: 0.05, d: 0.6 }), i * 800); }
+    PHONE.handset.position.y = 0.86 + (Math.sin(time * 60) > 0 ? 0.006 : 0);
+    if (PHONE.ring <= 0) { PHONE.it.active = false; msg('O telefone parou de tocar.', 2.5); }
+  }
+  // 4) a porta corta-fogo bate atrás de você no Pavilhão Leste
+  if (PROG.ch === 2 && P.region === 'privacao' && DOORS.fogo.open >= 1 && scareOnce('porta')) {
+    const d = DOORS.fogo; hush(1.5);
+    setTimeout(() => {
+      d.cells.forEach(([x, z]) => { grid[idx(x, z)] = 'X'; }); rebuildBlocked(); computeLightGrid();
+      d.mesh.position.y = CFG.wallH / 2; HSFX.slam(new THREE.Vector3(43 * CS + 1, 1.5, 14 * CS));
+      LIGHTS.filter(l => l.sector === 'leste').forEach(l => { l.flickT = 6; });
+      setTimeout(() => HSFX.scratch(new THREE.Vector3(43 * CS + 1, 1.4, 14 * CS)), 2500);
+      msg('A porta corta-fogo bateu sozinha.', 3);
+      setTimeout(() => { d.cells.forEach(([x, z]) => { grid[idx(x, z)] = '.'; }); rebuildBlocked(); computeLightGrid(); d.mesh.position.y = CFG.wallH / 2 + CFG.wallH - 0.3; burst({ f: 120, q: 2, peak: 0.3, d: 0.5 }); msg('A trava eletromagnética oscila. A porta volta a subir.', 3); }, 9000);
+    }, 1500);
+  }
+  // 5) as velas da capela apagam todas de uma vez
+  if (PROG.ch >= 3 && P.region === 'capela' && scareOnce('velas')) {
+    hush(1.8);
+    setTimeout(() => {
+      const l = LIGHTS.find(x => x.sector === 'capela'); if (l) { l.on = false; computeLightGrid(); setTimeout(() => { l.on = true; l.flickT = 1.5; computeLightGrid(); }, 7000); }
+      burst({ f: 600, q: 0.6, peak: 0.25, a: 0.3, d: 1.2 });
+      const b = HB('voz_apaga') || (A.tapes && A.tapes[6] && A.tapes[6][1]); if (b) setTimeout(() => playBuf(b, { pos: center(48, 23), rate: 0.8, gain: 0.7, verb: 1, dark: 1900 }), 1500);
+    }, 1800);
+  }
+  // 6) galerias: alguém chorando do outro lado do reservatório
+  if (PROG.ch === 4 && (P.region === 'ossario' || P.region === 'reservatorio') && scareOnce('choro')) {
+    const b = HB('sfx_choro') || (A.tapes && A.tapes[6] && A.tapes[6][4]); if (b) playBuf(b, { pos: center(40, 40), gain: 0.8, verb: 1.1, dark: 2500, ref: 4 });
+  }
+  if (PROG.ch === 4 && UNDER.has(P.region)) { SCARE.dripCD = (SCARE.dripCD || 0) - dt; if (SCARE.dripCD <= 0) { SCARE.dripCD = rand(4, 9); const pp = new THREE.Vector3(P.pos.x + rand(-8, 8), 2.5, P.pos.z + rand(-8, 8)); if (HB('sfx_pingos')) playBuf(HB('sfx_pingos'), { pos: pp, gain: 0.5, verb: 0.8, rate: rand(0.9, 1.1) }); else HSFX.drip(pp); } }
+}
+function answerPhone() {
+  PHONE.ring = 0; PHONE.it.active = false; SFX.click(); hush(6);
+  if (A.sfx_respira) playBuf(A.sfx_respira, { phone: true, gain: 1.2 }); else burst({ f: 900, q: 1, peak: 0.2, a: 0.5, d: 2 });
+  msg('Do outro lado da linha, alguém respira.', 3.5);
+  setTimeout(() => { const b = HB('voz_horas') || (A.tapes && A.tapes[3] && A.tapes[3][1]); if (b) playBuf(b, { phone: true, rate: 0.9, gain: 1.1 }); }, 3800);
+  setTimeout(() => { const b = HB('voz_noite'); if (b) playBuf(b, { phone: true, rate: 0.88, gain: 1.0 }); }, 6200);
+  setTimeout(() => { tone({ f: 420, type: 'square', peak: 0.05, d: 0.08 }); msg('A linha da recepção está cortada desde 1984.', 4); emitNoise(P.pos, 20, 2); }, 8000);
+}
+
+// ---------- medo e alucinações ----------
+function updateFear(dt, time) {
+  if (AI.state === 'dead' || P.dead) { FEAR = Math.max(0, FEAR - dt * 0.2); return; }
+  const lit = lightAt(P.pos), dark = lit < 0.15 && !(fl.on && fl.battery > 0), d = AI.pos.distanceTo(P.pos);
+  const hunting = AI.state === 'hunt' || AI.state === 'search' || AI.state === 'chase';
+  let up = (dark ? 0.022 : 0) + (hunting && d < 14 ? 0.06 : 0) + (AI.state === 'chase' ? 0.05 : 0) + (P.hidden && d < 5 ? 0.08 : 0);
+  if (OPT.hard) up *= 1.4;
+  const down = lit > 0.5 ? 0.06 : fl.on ? 0.02 : 0.006;
+  FEAR = clamp(FEAR + (up - down) * dt, 0, 1);
+  // sons que não existem
+  SCARE.fakeCD -= dt;
+  if (FEAR > 0.3 && SCARE.fakeCD <= 0 && Math.random() < dt * FEAR * 0.25) {
+    SCARE.fakeCD = rand(14, 30);
+    const back = new THREE.Vector3(P.pos.x + Math.sin(P.yaw) * rand(4, 7) + rand(-1.5, 1.5), 1.2, P.pos.z + Math.cos(P.yaw) * rand(4, 7) + rand(-1.5, 1.5));
+    const r = Math.random();
+    if (r < 0.35) HSFX.steps(back, 3); else if (r < 0.6) creatureVoice(back, 0.35); else if (r < 0.8) HSFX.knock(back); else HSFX.scratch(back, 1.6);
+  }
+  // o vulto no fim do corredor
+  SCARE.phantomCD -= dt;
+  const ph = PHANTOM.userData;
+  if (!PHANTOM.visible && FEAR > 0.5 && SCARE.phantomCD <= 0 && !P.hidden && Math.random() < dt * 0.15) {
+    const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+    for (let dist = 16; dist >= 9; dist -= 1) {
+      const px = P.pos.x + fx * dist, pz = P.pos.z + fz * dist, [cx, cz] = cellOf({ x: px, z: pz });
+      if (!inb(cx, cz) || blocked[idx(cx, cz)] || !los(camera.position, { x: px, z: pz })) continue;
+      if (AI.pos.distanceTo(new THREE.Vector3(px, 0, pz)) < 6) break;
+      PHANTOM.position.set(px, 0, pz); PHANTOM.rotation.y = Math.atan2(P.pos.x - px, P.pos.z - pz); PHANTOM.visible = true; ph.t = 0; ph.lit = 0; SCARE.phantomCD = rand(45, 80);
+      break;
+    }
+  }
+  if (PHANTOM.visible) {
+    ph.t += dt; const dpp = Math.hypot(PHANTOM.position.x - P.pos.x, PHANTOM.position.z - P.pos.z);
+    const cf = _v1.set(0, 0, -1).applyQuaternion(camera.quaternion), v = _v2.set(PHANTOM.position.x, 1.5, PHANTOM.position.z).sub(camera.position).normalize();
+    if (flash.intensity > 5 && Math.acos(clamp(v.dot(cf), -1, 1)) < flash.angle) ph.lit += dt;
+    if (ph.lit > 0.12 || ph.t > 2.4 || dpp < 6) { PHANTOM.visible = false; if (ph.lit > 0.12) burst({ f: 300, q: 0.7, peak: 0.12, a: 0.02, d: 0.5 }); }
+  }
+}
+
+// ---------- vozes da criatura e a imitação da Celeste ----------
+function updateCreatureVoice(dt) {
+  if (AI.ambush || AI.state === 'dead' || AI.state === 'dying' || AI.state === 'sunwalk' || P.dead || AI.grace > 0) return;
+  const d = AI.pos.distanceTo(P.pos), hp = AI.headPos(_v3).clone();
+  SCARE.voiceCD -= dt;
+  if (SCARE.voiceCD <= 0 && d < 20 && (AI.state === 'hunt' || AI.state === 'search' || AI.state === 'chase' || AI.state === 'investigate')) {
+    SCARE.voiceCD = AI.state === 'chase' ? rand(5, 9) : rand(10, 20);
+    if (Math.random() < 0.65) creatureVoice(hp, AI.state === 'chase' ? 1.1 : 0.8); else HSFX.sniff(hp);
+  }
+  // com o jogador escondido e ele perto: farejando
+  if (P.hidden && d < 3.5 && Math.random() < dt * 0.8) HSFX.sniff(hp);
+  // ele imita a voz da Celeste para te atrair (a partir do capítulo II)
+  SCARE.mimicCD -= dt;
+  if (PROG.ch >= 2 && SCARE.mimicCD <= 0 && d > 10 && d < 28 && !AI.canSee && !los(hp, camera.position) && AI.state !== 'chase') {
+    SCARE.mimicCD = rand(80, 140); const b = HB(pick(['voz_imita1', 'voz_imita2'])) || (A.radio && A.radio[0]);
+    if (b) { playBuf(b, { pos: hp, rate: 0.96, gain: 1.0, verb: 0.6, ref: 3 }); msg('Uma voz de mulher chama você no escuro. Não vem dos alto-falantes.', 4); }
+  }
+}
+
+// ---------- objetos soltos no chão ----------
+function updateDebris(dt) {
+  const spd = P.vel ? Math.hypot(P.vel.x, P.vel.z) : 0;
+  for (const o of DEBRIS) {
+    o.cd -= dt;
+    const dx = o.g.position.x - P.pos.x, dz = o.g.position.z - P.pos.z, d = Math.hypot(dx, dz);
+    if (d < 0.45 && spd > 0.6 && o.cd <= 0 && !P.hidden) {
+      o.cd = 1.2; o.vx = P.vel.x * 0.9 + dx * 2; o.vz = P.vel.z * 0.9 + dz * 2;
+      if (!P.crouch) { HSFX.clatter(o.kind, o.g.position); emitNoise(P.pos, 11, 2); STATS.kicks++; STATS.kicksCh++; }
+      else { o.vx *= 0.3; o.vz *= 0.3; }
+    }
+    if (o.vx || o.vz) {
+      const nx = o.g.position.x + o.vx * dt, nz = o.g.position.z + o.vz * dt, [cx, cz] = cellOf({ x: nx, z: nz });
+      if (inb(cx, cz) && !blocked[idx(cx, cz)]) { o.g.position.x = nx; o.g.position.z = nz; o.g.rotation.y += (o.vx + o.vz) * dt * 3; } else { o.vx *= -0.3; o.vz *= -0.3; }
+      o.vx *= Math.pow(0.08, dt); o.vz *= Math.pow(0.08, dt); if (Math.hypot(o.vx, o.vz) < 0.05) o.vx = o.vz = 0;
+    }
+  }
+}
+function updateTerror(dt, time) {
+  if (HUSH > 0) HUSH -= dt;
+  updateScares(dt, time); updateFear(dt, time); updateCreatureVoice(dt); updateDebris(dt);
+}
+
+
+/* ---------------------------------------------------------------
+   v1.1 — narração do Elias, trilha por capítulo, cutscenes, sinalizador e garrafa,
+   fotos colecionáveis, conquistas, final alternativo, estatísticas, controle (gamepad)
+   --------------------------------------------------------------- */
+// ---------- narração do Elias (ElevenLabs, voz Brian) ----------
+const ELIAS_TXT = [
+  'Cinco fusíveis. Eu já troquei mil fusíveis. Nunca no escuro, com alguma coisa respirando atrás de mim.',
+  'Um. Faltam quatro. Não pensa. Só continua.',
+  'Aquilo não é um homem. Aquilo já foi um homem.',
+  'Não abriu. Claro que não abriu.',
+  'Isso não é um hospital. Isso é uma prisão sem janelas.',
+  'Ele queimou um garoto vivo. E anotou o código.',
+  'Covarde. Morreu antes de ter que olhar pra mim.',
+  'Dez mil lux. Se é assim que se para essa coisa, é assim que vai ser.',
+  'Ele levantou. Queimado, e levantou.',
+  'Debaixo do prédio inteiro. Ela viveu aqui embaixo esse tempo todo.',
+  'A mãe dele. Ela era a mãe dele.',
+  'Seis e quatro. Eu só preciso durar até as seis e quatro.',
+  'Ele só queria ver o dia.',
+  'Ninguém devia morrer assim. Nem ele.',
+  'A pilha tá acabando. Agora não. Agora não.',
+  'Não respira. Não respira.',
+  'Osmar… Então foi aqui que você se escondeu.'
+];
+const ELIAS = { done: new Set(), busy: false };
+function eliasSay(i, delay = 0, force) {
+  if ((!force && ELIAS.done.has(i)) || !ELIAS_TXT[i]) return; ELIAS.done.add(i);
+  setTimeout(function tryIt(n = 0) {
+    if ((TP.n || ELIAS.busy || UI.modal) && n < 12) { setTimeout(() => tryIt(n + 1), 2500); return; }
+    const buf = A['elias' + i], dur = buf ? buf.duration : 1.5 + ELIAS_TXT[i].length * 0.06; ELIAS.busy = true;
+    if (buf) playBuf(buf, { gain: 1.05, verb: 0.08 });
+    $('tsub').innerHTML = `<b>ELIAS:</b> <i>${ELIAS_TXT[i]}</i>`; $('tsub').style.opacity = 1;
+    setTimeout(() => { if (!TP.n) $('tsub').style.opacity = 0; ELIAS.busy = false; }, dur * 1000 + 500);
+  }, delay * 1000);
+}
+
+// ---------- trilha sonora (laços gerados na ElevenLabs) ----------
+const MUS = { key: null, src: null, g: null, chase: null, chaseG: null };
+function setMusic(key, vol = 0.2) {
+  if (!A.ctx || MUS.key === key) return; const old = MUS.src, oldG = MUS.g, t = A.ctx.currentTime;
+  if (oldG) { oldG.gain.setTargetAtTime(0, t, 0.8); setTimeout(() => { try { old.stop(); } catch (e) { } }, 4000); }
+  MUS.key = key; MUS.src = MUS.g = null; const buf = A[key]; if (!buf) return;
+  const s = A.ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.loopStart = 0.3; s.loopEnd = buf.duration - 0.3;
+  const g = A.ctx.createGain(); g.gain.value = 0; s.connect(g).connect(A.master); g.connect(A.verb); s.start(); g.gain.setTargetAtTime(vol, t, 1.5);
+  MUS.src = s; MUS.g = g;
+}
+function chapterMusic() { setMusic(PROG.ch >= 4 && DAWN.phase === 'sun' ? 'mus_dawn' : 'mus_ch' + PROG.ch); }
+function updateMusic(dt) {
+  if (!A.ctx) return;
+  if (!MUS.chase && A.mus_chase) { const s = A.ctx.createBufferSource(); s.buffer = A.mus_chase; s.loop = true; const g = A.ctx.createGain(); g.gain.value = 0; s.connect(g).connect(A.master); s.start(); MUS.chase = s; MUS.chaseG = g; }
+  const chasing = AI.state === 'chase' && !P.dead && AI.pos.distanceTo(P.pos) < 24;
+  if (MUS.chaseG) MUS.chaseG.gain.setTargetAtTime(chasing ? 0.22 : 0, A.ctx.currentTime, chasing ? 0.3 : 1.5);
+  if (MUS.g && MUS.key !== 'mus_dawn') MUS.g.gain.setTargetAtTime(HUSH > 0 ? 0 : chasing ? 0.06 : 0.2, A.ctx.currentTime, 0.8);
+}
+
+// ---------- cutscenes curtas entre capítulos ----------
+async function cutscene(shots, done) {
+  MODE = 'cut'; CINE.skip = false; CINE.hold = 0; CINE.holding = false;
+  $('cine').style.display = 'block'; $('cine').classList.add('on'); card('', false); $('subs').style.opacity = 0; $('skip').style.opacity = 0.5;
+  for (const s of shots) { if (CINE.skip) break; shot(s); if (s.say != null) eliasSay(s.say, 0.6, true); await sleep(s.dur * 1000); }
+  CINE.shot = null; $('cine').classList.remove('on'); $('skip').style.opacity = 0; setTimeout(() => { if (MODE !== 'intro' && MODE !== 'cut') $('cine').style.display = 'none'; }, 900);
+  MODE = 'game'; if (done) done();
+}
+const CUTS = {
+  fogo: [{ from: V3(38.5 * CS, 1.6, 13.6 * CS), to: V3(41.6 * CS, 1.55, 13.9 * CS), look: V3(47 * CS, 1.7, 14 * CS), look2: V3(52 * CS, 1.5, 14 * CS), dur: 7, say: 4 }],
+  varela: [{ from: V3(59 * CS, 1.55, 6.6 * CS), to: V3(60.6 * CS, 1.25, 5.9 * CS), look: V3(62 * CS + 1.3, 0.3, 5 * CS + 0.8), dur: 6.5, say: 6 }],
+  alcapao: [{ from: V3(50 * CS, 1.7, 29.3 * CS), to: V3(52.2 * CS, 1.55, 31 * CS), look: V3(53 * CS + 1, 0.4, 33.4 * CS), dur: 6.5, say: 8 }]
+};
+
+// ---------- sinalizador e garrafa ----------
+const THROWN = [];
+function throwItem(kind) {
+  if (P.hidden || P.dead || UI.modal) return;
+  if (kind === 'flare' ? P.flares <= 0 : P.bottles <= 0) { msg(kind === 'flare' ? 'Sem sinalizadores.' : 'Sem garrafas para jogar.', 1.5); return; }
+  if (kind === 'flare') P.flares--; else P.bottles--;
+  const g = new THREE.Group(), cf = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  if (kind === 'flare') { const m = cyl(0.02, 0.02, 0.22, new THREE.MeshStandardMaterial({ color: 0x7a1010, emissive: 0xff3020, emissiveIntensity: 3 }), 0, 0, 0, g, 8); m.rotation.z = Math.PI / 2; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow, color: 0xff4020, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sp.scale.setScalar(0.9); g.add(sp); }
+  else { const m = cyl(0.035, 0.035, 0.24, new THREE.MeshPhysicalMaterial({ color: 0x2c4a2a, roughness: 0.15, transparent: true, opacity: 0.8 }), 0, 0, 0, g, 8); m.rotation.z = Math.PI / 2; }
+  g.position.copy(camera.position).addScaledVector(cf, 0.4); scene.add(g);
+  THROWN.push({ kind, g, v: cf.multiplyScalar(kind === 'flare' ? 9 : 11).add(new THREE.Vector3(0, 3, 0)), landed: false, t: 0 });
+  burst({ f: 1200, q: 0.8, peak: 0.08, d: 0.15 }); if (kind === 'flare') burst({ f: 4000, type: 'highpass', peak: 0.2, a: 0.02, d: 0.6 });
+}
+function updateThrown(dt) {
+  for (let i = THROWN.length - 1; i >= 0; i--) {
+    const o = THROWN[i]; o.t += dt;
+    if (!o.landed) {
+      o.v.y -= 9.8 * dt; const np = o.g.position.clone().addScaledVector(o.v, dt), [cx, cz] = cellOf(np);
+      if (!inb(cx, cz) || blocked[idx(cx, cz)] || np.y > CFG.wallH - 0.1) { o.v.x *= -0.25; o.v.z *= -0.25; if (np.y > CFG.wallH - 0.1) o.v.y = -Math.abs(o.v.y) * 0.3; }
+      else o.g.position.copy(np);
+      o.g.rotation.x += dt * 8; o.g.rotation.z += dt * 5;
+      if (o.g.position.y <= 0.04) { o.g.position.y = 0.03; o.landed = true; o.t = 0; o.g.rotation.set(0, Math.random() * 6, 0); land(o); }
+    } else if (o.kind === 'flare') {
+      const k = o.t < 16 ? 1 : Math.max(0, 1 - (o.t - 16) / 2); o.light.L.intensity = o.light.base * k * (0.85 + Math.random() * 0.15); o.light.on = k > 0;
+      if (Math.random() < dt * 30) puff(o.g.position.clone().add(new THREE.Vector3(0, 0.1, 0)), 1, true, true);
+      if (o.t > 18) { scene.remove(o.g); LIGHTS.splice(LIGHTS.indexOf(o.light), 1); computeLightGrid(); THROWN.splice(i, 1); }
+    } else if (o.t > 30) { scene.remove(o.g); THROWN.splice(i, 1); }
+  }
+}
+function land(o) {
+  const p = o.g.position;
+  if (o.kind === 'bottle') {
+    if (A.sfx_garrafa) playBuf(A.sfx_garrafa, { pos: p, gain: 1.8, verb: 0.5, rate: 1.15 }); else HSFX.clatter('bottle', p);
+    spatialOneShot(p, q => { for (const f of [2600, 3400, 4500, 5200]) burst({ f, q: 30, peak: 0.3, d: 0.5, dest: q }); });
+    emitNoise(p.clone(), 18, 2); o.g.visible = false;
+  } else {
+    const fx = { intensity: 0, color: new THREE.Color(0xff3a1c) }, fixture = { material: { emissiveIntensity: 0 } };
+    o.light = { L: fx, fixture, pos: new THREE.Vector3(p.x, 0.6, p.z), base: 14, range: 10, strength: 1.0, sector: 'flare', on: true, kind: 'red', flick: 1, flickT: 0, broken: false };
+    LIGHTS.push(o.light); computeLightGrid();
+    spatialOneShot(p, q => burst({ f: 3500, type: 'highpass', peak: 0.07, a: 0.2, d: 16, dest: q }));
+    if (AI.pos.distanceTo(p) < 6) AI.flee(7, true);
+  }
+}
+
+// ---------- fotos, extras persistentes e conquistas ----------
+const EXTRAS = Object.assign({ fotos: [], fitas: [] }, loadJ('formol_extras') || {});
+const ACH = new Set(loadJ('formol_ach') || []);
+const ACH_LIST = {
+  apagao: ['APAGÃO', 'Termine o capítulo I.'], noite: ['NOITE LONGA', 'Termine o capítulo II.'], formol: ['FORMOL', 'Termine o capítulo III.'],
+  amanhecer: ['JÁ É DIA', 'Veja o final verdadeiro.'], eterna: ['NOITE ETERNA', 'Veja o outro final.'], fitas: ['ARQUIVO COMPLETO', 'Encontre as 9 fitas.'],
+  fotos: ['ÁLBUM', 'Encontre as 6 fotografias.'], osmar: ['O VIGIA', 'Encontre o esconderijo do Osmar.'], intocavel: ['INTOCÁVEL', 'Termine o jogo sem morrer.'],
+  pesadelo: ['PESADELO', 'Termine o jogo no modo Pesadelo.'], escuro: ['SEM LUZ', 'Termine o capítulo IV sem acender a lanterna.'], silencio: ['PÉS DE GATO', 'Termine um capítulo sem chutar nenhum objeto.']
+};
+function achieve(k) {
+  if (ACH.has(k) || !ACH_LIST[k]) return; ACH.add(k); saveJ('formol_ach', [...ACH]);
+  const el = $('ach'); el.innerHTML = `<small>CONQUISTA</small>${ACH_LIST[k][0]}<span>${ACH_LIST[k][1]}</span>`; el.style.opacity = 1; el.style.transform = 'translateY(0)';
+  tone({ f: 660, f2: 880, type: 'sine', peak: 0.05, d: 0.4 }); clearTimeout(achieve.t); achieve.t = setTimeout(() => { el.style.opacity = 0; el.style.transform = 'translateY(-10px)'; }, 4200);
+}
+function saveExtras() { saveJ('formol_extras', EXTRAS); }
+function noteExtra(kind, n) { if (!EXTRAS[kind].includes(n)) { EXTRAS[kind].push(n); saveExtras(); } if (EXTRAS.fotos.length >= 6) achieve('fotos'); if (EXTRAS.fitas.length >= Object.keys(TAPEDATA).length) achieve('fitas'); }
+const FOTOS = {
+  1: ['FOTO 1 — ALA DE PACIENTES, 1979', 'Doze leitos, doze rostos virados para a câmera.\n\nUm deles cobre os olhos com as duas mãos.'],
+  2: ['FOTO 2 — INAUGURAÇÃO DO QG-1, 1979', 'O Dr. Varela corta a fita do quadro novo, sorrindo.\n\nAtrás dele, uma enfermeira de cabelo preso olha para outro lado. Alguém escreveu a caneta, em cima do rosto dela: "C."'],
+  3: ['FOTO 3 — GAVETA 7, MARÇO DE 1983', 'Foto de perícia, nunca anexada ao processo.\n\nO lado de dentro da gaveta, arranhado até o metal brilhar.'],
+  4: ['FOTO 4 — CÂMARA 3, COM FLASH', 'Paredes pintadas de preto. Um colchão no chão.\n\nNo canto, desenhado a unha no reboco: uma janela com um sol.'],
+  5: ['FOTO 5 — CAPELA, NATAL DE 1984', 'Velas acesas em todos os bancos.\n\nNa última fila, uma silhueta branca, alta demais, sentada no escuro.'],
+  6: ['FOTO 6 — CABO FRIO, 1971 (SEGUNDA CÓPIA)', 'Celeste e Tomás, de costas para a câmera, olhando o mar ao meio-dia.\n\nNo verso: "o dia em que ele não teve medo".']
+};
+function openExtras() {
+  const ul = $('achList'); ul.innerHTML = '';
+  for (const k in ACH_LIST) { const li = document.createElement('li'); li.className = ACH.has(k) ? 'got' : ''; li.innerHTML = `${ACH.has(k) ? '◆' : '◇'} ${ACH_LIST[k][0]}<small>${ACH_LIST[k][1]}</small>`; ul.appendChild(li); }
+  const gl = $('galList'); gl.innerHTML = '';
+  for (const n in FOTOS) { const li = document.createElement('li'); const got = EXTRAS.fotos.includes(+n); li.textContent = got ? FOTOS[n][0] : '— foto não encontrada —'; li.className = got ? '' : 'dis'; if (got) li.onclick = () => { uiSfx('sel'); showPanel(null); setTimeout(() => showDoc(FOTOS[n][0], FOTOS[n][1], 'photo', () => { $('menu').style.display = 'block'; showPanel('p_extras'); }), 50); $('menu').style.display = 'none'; }; gl.appendChild(li); }
+  $('extInfo').textContent = `${ACH.size}/${Object.keys(ACH_LIST).length} CONQUISTAS · ${EXTRAS.fotos.length}/6 FOTOS · ${EXTRAS.fitas.length}/${Object.keys(TAPEDATA).length} FITAS`;
+  showPanel('p_extras');
+}
+
+// ---------- estatísticas ----------
+const STATS = { chStart: {}, chTime: {}, seen: 0, kicks: 0, kicksCh: 0, darkCh4: true };
+function chapterBegin(n) { STATS.chStart[n] = performance.now(); STATS.kicksCh = 0; if (n === 4) STATS.darkCh4 = true; }
+function chapterEnd(n) {
+  if (STATS.chStart[n]) STATS.chTime[n] = (performance.now() - STATS.chStart[n]) / 1000;
+  achieve(['', 'apagao', 'noite', 'formol'][n] || '');
+  if (STATS.kicksCh === 0 && STATS.chStart[n]) achieve('silencio');
+}
+const fmtT = s => `${Math.floor(s / 60)}m${String(Math.floor(s % 60)).padStart(2, '0')}s`;
+
+// ---------- controle de videogame ----------
+const PAD = { prev: {}, look: [0, 0], active: false };
+function updateGamepad(dt) {
+  const gp = navigator.getGamepads ? [...navigator.getGamepads()].find(g => g && g.connected) : null; if (!gp) return;
+  const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed), edge = i => b(i) && !PAD.prev[i], dz = v => Math.abs(v) < 0.18 ? 0 : v;
+  const lx = dz(gp.axes[0] || 0), ly = dz(gp.axes[1] || 0), rx = dz(gp.axes[2] || 0), ry = dz(gp.axes[3] || 0);
+  if (lx || ly || rx || ry || gp.buttons.some(x => x.pressed)) PAD.active = true; if (!PAD.active) return;
+  if (UI.modal) { if (edge(0) || edge(1)) { UI.t0 = 0; closeModal(); } }
+  else if (playing && !paused && !P.dead && MODE === 'game') {
+    keys.KeyW = ly < -0.3; keys.KeyS = ly > 0.3; keys.KeyA = lx < -0.3; keys.KeyD = lx > 0.3; keys.ShiftLeft = b(10) || b(4);
+    const sens = 2.6 * OPT.sens / 100; P.yaw -= rx * sens * dt; P.pitch = clamp(P.pitch - ry * sens * dt, -1.35, 1.35);
+    mouseFocus = b(7) || (gp.buttons[7] && gp.buttons[7].value > 0.4);
+    if (edge(0)) { eHeld = true; pressInteract(); } if (!b(0) && PAD.prev[0]) { eHeld = false; installT = 0; }
+    if (edge(1)) P.crouch = !P.crouch; if (edge(2) && !P.hidden && OPT.noLight !== true) { fl.on = !fl.on; SFX.click(); TORCH.clickT = 0.16; }
+    if (edge(5)) throwItem('flare'); if (edge(6)) throwItem('bottle'); if (edge(3)) { if (!OPT.hard) showMap($('map').style.display !== 'flex'); }
+    if (edge(9)) pauseGame();
+  } else if (paused && edge(9)) resumeGame();
+  PAD.prev = gp.buttons.map(x => x.pressed);
+}
+
+// ---------- atualização por quadro ----------
+const WIN_TXT = {
+  good: '<p>06:04. Pela primeira vez em cinco anos, Tomás Aurélio Reis viu o dia. Quando a luz o alcançou, ele não gritou. Sentou nas pedras do pátio, ao lado da mãe, e fechou os olhos.</p><p>Elias Prado saiu pelo portão dos fundos e andou até a avenida sem olhar para trás.</p><p>Horas depois, os bombeiros encontraram no pátio interno uma mulher de uniforme branco, sentada num banco, abraçada a um corpo embalsamado em 1983. Ela não quis sair de lá.</p><p>O laudo oficial falou em curto-circuito. O Instituto São Lázaro foi demolido em 1989.</p><p class="small">Até o fim da vida, Elias dormiu com a cortina aberta.</p>',
+  bad: '<p>06:04. O sol nasce sobre o pátio interno. Tomás Aurélio Reis entra na luz sem ninguém à espera e grita até não sobrar voz.</p><p>Elias Prado sai pelo portão dos fundos com aquele grito nos ouvidos.</p><p>Celeste nunca chegou ao pátio. Dias depois, encontraram-na nas galerias, sentada diante de um gravador desligado, repetindo que ainda era noite.</p><p>O laudo oficial falou em curto-circuito. O Instituto São Lázaro foi demolido em 1989.</p><p class="small">Até o fim da vida, Elias não conseguiu dormir no escuro. Nem no claro.</p>'
+};
+function winExtras() {
+  const good = !!PROG.heard7; STATS.chTime[4] = STATS.chStart[4] ? (performance.now() - STATS.chStart[4]) / 1000 : 0;
+  $('win_title').textContent = good ? 'JÁ É DIA' : 'NOITE ETERNA'; $('win_txt').innerHTML = WIN_TXT[good ? 'good' : 'bad'];
+  achieve(good ? 'amanhecer' : 'eterna'); if (stats.deaths === 0) achieve('intocavel'); if (OPT.hard) achieve('pesadelo'); if (STATS.darkCh4) achieve('escuro'); if (STATS.kicksCh === 0) achieve('silencio');
+  saveJ('formol_beaten', true);
+  const rows = [1, 2, 3, 4].filter(n => STATS.chTime[n]).map(n => `CAP. ${['', 'I', 'II', 'III', 'IV'][n]} · ${fmtT(STATS.chTime[n])}`).join('   ');
+  $('win_stats').innerHTML = `${rows}<br>VISTO ${STATS.seen}× · OBJETOS CHUTADOS ${STATS.kicks} · FOTOS ${EXTRAS.fotos.length}/6 · CONQUISTAS ${ACH.size}/${Object.keys(ACH_LIST).length}`;
+  $('roll').classList.add('go');
+}
+function updateV11(dt, time) {
+  updateMusic(dt); updateThrown(dt);
+  if (fl.battery < 20 && fl.battery > 0 && !OPT.noLight) eliasSay(14, 0.5);
+  if (P.hidden && AI.pos.distanceTo(P.pos) < 6 && AI.state !== 'dead') eliasSay(15, 0.2);
+  if (P.region === 'vigia') { eliasSay(16, 0.8); achieve('osmar'); }
+  if (PROG.ch === 4 && fl.on && fl.battery > 0) STATS.darkCh4 = false;
+  $('items').textContent = (P.flares || P.bottles) ? `SINALIZADOR [G] ${P.flares} · GARRAFA [Q] ${P.bottles}` : '';
+}
+
 /* ---------------------------------------------------------------
    UI
    --------------------------------------------------------------- */
@@ -2972,9 +3506,9 @@ function silenceAmbience(sec) { if (!A.ctx) return; const t = A.ctx.currentTime;
 function showMap(on) {
   $('map').style.display = on ? 'flex' : 'none'; if (!on) return;
   const c = $('mapc'), g = c.getContext('2d'), s = 10; g.fillStyle = '#0b0f0e'; g.fillRect(0, 0, c.width, c.height);
-  const col = { pacientes: '#3b2b2b', enfermaria: '#2a3b33', admin: '#3a3726', corredor: '#3b1d1d', necroterio: '#22303b', recepcao: '#2b3a44', autopsia: '#33363a', subsolo: '#2a2420', rua: '#3a2c1c', leste: '#3b1d1d', privacao: '#241f2a', diretoria: '#3a2f22', gravacao: '#2c2a24', capela: '#3a2a1a', fototerapia: '#26323a', crematorio: '#3a2018', galerias: '#2a2420', ossario: '#33302a', reservatorio: '#1c2a2a', quarto: '#3a2a22', patio: '#2a3428' };
+  const col = { pacientes: '#3b2b2b', enfermaria: '#2a3b33', admin: '#3a3726', corredor: '#3b1d1d', necroterio: '#22303b', recepcao: '#2b3a44', autopsia: '#33363a', subsolo: '#2a2420', rua: '#3a2c1c', leste: '#3b1d1d', privacao: '#241f2a', diretoria: '#3a2f22', gravacao: '#2c2a24', capela: '#3a2a1a', fototerapia: '#26323a', crematorio: '#3a2018', vigia: '#2a2a22', galerias: '#2a2420', ossario: '#33302a', reservatorio: '#1c2a2a', quarto: '#3a2a22', patio: '#2a3428' };
   for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
-    const v = grid[idx(x, z)]; if (v === '#') continue; const rg = regionAt(x, z);
+    const v = grid[idx(x, z)]; if (v === '#') continue; const rg = regionAt(x, z); if (rg === 'vigia' && !ACH.has('osmar') && P.region !== 'vigia') continue;
     if (PROG.ch < (REGION_CH[rg] || 1)) { if (PROG.ch + 1 >= (REGION_CH[rg] || 1)) { g.fillStyle = '#141414'; g.fillRect(x * s, z * s, s, s); } continue; }   // área do próximo capítulo: só a silhueta
     g.fillStyle = v === 'X' ? '#b8901c' : col[rg]; g.fillRect(x * s, z * s, s, s);
   }
@@ -3052,7 +3586,7 @@ function renderFrame(time, dt = 0.016) {
   }
   quad.material = finalMat; const u = finalMat.uniforms;
   u.tD.value = rtMain.texture; u.tB.value = rtA.texture; u.uT.value = time; u.uExp.value = EXPO;
-  u.uCA.value = 0.0018 + DANGER * 0.006 + CAM.trauma * 0.01; u.uDanger.value = DANGER; u.uGrain.value = 0.026; u.uHaze.value.set(HAZE.x, HAZE.y, HAZE.on * HAZE.i, HAZE.r); u.uAsp.value = innerWidth / innerHeight;
+  u.uCA.value = 0.0018 + DANGER * 0.006 + CAM.trauma * 0.01 + FEAR * FEAR * 0.008 * (1 + Math.sin(time * 2.3) * 0.5); u.uDanger.value = Math.max(DANGER, FEAR * 0.45); u.uGrain.value = 0.026; u.uHaze.value.set(HAZE.x, HAZE.y, HAZE.on * HAZE.i, HAZE.r); u.uAsp.value = innerWidth / innerHeight;
   renderer.setRenderTarget(null); renderer.render(quadScene, quadCam);
 }
 
@@ -3135,13 +3669,15 @@ function updatePlayer(dt) {
 }
 function updateFlashlight(dt, time) {
   const F = CFG.flash;
-  const usable = fl.on && !P.hidden && !P.dead;
+  const usable = fl.on && !P.hidden && !P.dead && !OPT.noLight;
   const focusing = usable && mouseFocus && fl.battery > 0;
-  if (usable && fl.battery > 0) fl.battery = Math.max(0, fl.battery - dt * (focusing ? F.drainFocus : F.drainNormal));
+  if (usable && fl.battery > 0) fl.battery = Math.max(0, fl.battery - dt * (focusing ? F.drainFocus : F.drainNormal) * (OPT.hard ? 1.6 : 1));
   fl.focus = focusing;
   let I = 0;
   if (usable) {
-    if (fl.battery > 0) { I = focusing ? F.focusI : F.normalI; I *= 0.55 + 0.45 * clamp(fl.battery / 30, 0, 1); if (fl.battery < 15 && Math.random() < 0.08) { I *= rand(0.05, 0.5); if (Math.random() < 0.06 && TORCH.tapT <= 0) { TORCH.tapT = 0.35; burst({ f: 900, q: 3, peak: 0.12, d: 0.05 }); } } }
+    if (fl.battery > 0 && AI.state !== 'dead' && AI.state !== 'sunwalk') { const dc = AI.pos.distanceTo(P.pos); if (dc < 11 && Math.random() < dt * (11 - dc) * 0.9) { fl.glitch = rand(0.05, 0.25); if (Math.random() < 0.3) burst({ f: 5000, type: 'highpass', peak: 0.04, d: 0.05 }); } }
+    if (fl.glitch > 0) fl.glitch -= dt;
+    if (fl.battery > 0) { I = focusing ? F.focusI : F.normalI; if (fl.glitch > 0) I *= rand(0.02, 0.3); I *= 0.55 + 0.45 * clamp(fl.battery / 30, 0, 1); if (fl.battery < 15 && Math.random() < 0.08) { I *= rand(0.05, 0.5); if (Math.random() < 0.06 && TORCH.tapT <= 0) { TORCH.tapT = 0.35; burst({ f: 900, q: 3, peak: 0.12, d: 0.05 }); } } }
     else { fl.deadFlicker += dt; const ph = fl.deadFlicker % 10; I = ph < 2 ? F.normalI * 0.25 * (Math.random() < 0.6 ? 1 : 0.2) : 0; }
   }
   const ang = focusing ? F.focusAngle : F.normalAngle, dist = focusing ? F.focusDist : F.normalDist;
@@ -3238,7 +3774,7 @@ function updateLights(dt, time) {
 function updateDanger() {
   const st = AI.state, d = AI.pos.distanceTo(P.pos);
   DANGER = clamp((st === 'chase' ? 1 : st === 'hunt' || st === 'search' ? 0.6 : 0.3) * (1 - clamp((d - 3) / 22, 0, 1)), 0, 1);
-  CAM.floor = Math.min(0.55, DANGER * 0.38 + (AI.ignition ? 0.22 : 0) + (P.exhausted > 0 ? 0.12 : 0) + (st === 'chase' && d < 8 ? 0.12 : 0));
+  CAM.floor = Math.min(0.55, DANGER * 0.38 + FEAR * 0.12 + (AI.ignition ? 0.22 : 0) + (P.exhausted > 0 ? 0.12 : 0) + (st === 'chase' && d < 8 ? 0.12 : 0));
 }
 function updateAudio(dt, time) {
   if (!A.ctx) return; const ctx = A.ctx, t = ctx.currentTime, l = ctx.listener;
@@ -3250,7 +3786,7 @@ function updateAudio(dt, time) {
   A.cFilt.frequency.setTargetAtTime(walls ? 900 / walls : 9000, t, 0.1);
   const hideMuffle = P.hidden ? 0.5 : 1;
   const st = AI.state;
-  const growl = (st === 'dead' ? 0 : st === 'chase' || st === 'dying' ? 0.9 : st === 'hunt' || st === 'search' ? 0.55 : st === 'recoil' ? 0.3 : 0.35) * hideMuffle;
+  const growl = (st === 'dead' || (AI.ambush && st === 'patrol') ? 0.02 : st === 'chase' || st === 'dying' ? 0.9 : st === 'hunt' || st === 'search' ? 0.55 : st === 'recoil' ? 0.3 : 0.35) * hideMuffle;
   A.growlG.gain.setTargetAtTime(growl, t, 0.2); A.growlOsc.frequency.setTargetAtTime(st === 'chase' ? 62 : 44, t, 0.3); A.breathLfo.frequency.setTargetAtTime(st === 'chase' ? 2.2 : 0.35, t, 0.3);
   A.dragG.gain.setTargetAtTime(Math.min(1, AI.speed / 3) * 0.25 * hideMuffle, t, 0.1);
   if ((st === 'investigate' || st === 'search') && AI.speed < 0.5 && Math.random() < dt * 2) SFX.tick();
@@ -3259,15 +3795,16 @@ function updateAudio(dt, time) {
   const danger = clamp((st === 'chase' ? 1 : st === 'hunt' || st === 'search' ? 0.6 : 0.3) * (1 - clamp((d - 3) / 22, 0, 1)), 0, 1);
   DANGER = danger;
   CAM.floor = Math.min(0.55, danger * 0.38 + (AI.ignition ? 0.22 : 0) + (P.exhausted > 0 ? 0.12 : 0) + (st === 'chase' && d < 8 ? 0.12 : 0));
-  A.tension.gain.setTargetAtTime(danger * 0.07, t, 0.6);
+  A.tension.gain.setTargetAtTime(HUSH > 0 ? 0 : Math.max(danger, FEAR * 0.5) * 0.07, t, HUSH > 0 ? 0.15 : 0.6);
   A.chase.gain.setTargetAtTime(st === 'chase' && !P.dead ? 0.6 : 0, t, 0.8);
-  A.nextBeat -= dt; if (danger > 0.15 && A.nextBeat <= 0) { SFX.heart(0.4 + danger * 0.8); A.nextBeat = lerp(1.1, 0.42, danger); }
+  const beatK = Math.max(danger, FEAR > 0.55 ? FEAR * 0.6 : 0, P.hidden && d < 4 ? 0.9 : 0);
+  A.nextBeat -= dt; if (beatK > 0.15 && A.nextBeat <= 0 && HUSH <= 0) { SFX.heart(0.4 + beatK * 0.8); A.nextBeat = lerp(1.1, 0.4, beatK); }
   A.nextKick -= dt; if (st === 'chase' && A.nextKick <= 0) { SFX.kick(); A.nextKick = 0.34; }
   // zumbido das lâmpadas próximas
   let hum = 0; for (const lt of LIGHTS) if (lt.on && lt.kind === 'fluo') hum = Math.max(hum, 1 - lt.pos.distanceTo(camera.position) / 8);
-  A.hum.gain.setTargetAtTime(Math.max(0, hum) * 0.025, t, 0.2);
+  A.hum.gain.setTargetAtTime(HUSH > 0 ? 0 : Math.max(0, hum) * 0.025, t, 0.2);
   // prédio vivo: batidas metálicas distantes
-  A.nextClank -= dt; if (A.nextClank <= 0) { A.nextClank = rand(14, 40); const a = rand(0, 6.28); SFX.clank({ x: camera.position.x + Math.cos(a) * rand(15, 30), y: 2, z: camera.position.z + Math.sin(a) * rand(15, 30) }); }
+  A.nextClank -= dt; if (A.nextClank <= 0 && HUSH <= 0) { A.nextClank = rand(14, 40); const a = rand(0, 6.28); SFX.clank({ x: camera.position.x + Math.cos(a) * rand(15, 30), y: 2, z: camera.position.z + Math.sin(a) * rand(15, 30) }); }
   if (AI.ignition) A.sirenG.gain.setTargetAtTime(0.06, t, 0.5);
   // tela
   $('danger').style.opacity = (danger * 0.9 + (st === 'chase' ? Math.sin(time * 8) * 0.1 : 0)).toFixed(2);
@@ -3276,14 +3813,16 @@ let last = performance.now(), grainTick = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000); last = now; const time = now / 1000;
-  if (MODE === 'intro') {
+  updateGamepad(dt);
+  if (MODE === 'intro' || MODE === 'cut') {
+    if (MODE === 'cut') { updateDoors(dt); updateMusic(dt); }
     updateCine(dt, time); animateCreature(dt, time); updateLights(dt, time); updateListenerOnly();
     for (const s of steam) if (s.life > 0) { s.life -= dt * 0.8; s.s.position.addScaledVector(s.v, dt); s.s.material.opacity = s.life * 0.3; if (s.life <= 0) s.s.visible = false; }
     if (AI.burnAcc > 0.5 && Math.random() < dt * 25) puff(AI.headPos(_v3), 1, true);
     DANGER = 0; renderFrame(time, dt); return;
   }
   if (!playing) { // câmera de menu
-    menuMusic(dt); updateListenerOnly();
+    if (A.mus_menu) setMusic('mus_menu'); else menuMusic(dt); updateListenerOnly();
     camera.position.set(9, 1.55, 28); camera.rotation.set(Math.sin(time * 0.2) * 0.03, -Math.PI / 2 + Math.sin(time * 0.13) * 0.05, 0, 'YXZ');
     const mx = 31 + Math.sin(time * 0.09) * 5; AI.yaw = Math.cos(time * 0.09) > 0 ? Math.PI / 2 : -Math.PI / 2;
     AI.pos.set(mx, 0, 27.4); AI.state = 'patrol'; AI.speed = 1.1;
@@ -3295,8 +3834,9 @@ function frame(now) {
     P.deathT += dt; const hp = AI.headPos(_v1);
     AI.anim.jaw = lerp(AI.anim.jaw, 1.0, dt * 4); C.jaw.rotation.x = AI.anim.jaw;
     const lookAt = new THREE.Matrix4().lookAt(camera.position, hp, new THREE.Vector3(0, 1, 0)); const q = new THREE.Quaternion().setFromRotationMatrix(lookAt);
-    camera.quaternion.slerp(q, Math.min(1, dt * 6)); const ds = 0.03 + 0.06 * Math.max(CAM.level, 0.3); camera.position.x += (Math.random() - .5) * ds; camera.position.y += (Math.random() - .5) * ds; DANGER = 1; CAM.trauma = 1;
-    if (P.deathT > 0.9) $('fade').style.opacity = 1;
+    camera.quaternion.slerp(q, Math.min(1, dt * 16)); const ds = 0.03 + 0.06 * Math.max(CAM.level, 0.3); camera.position.x += (Math.random() - .5) * ds; camera.position.y += (Math.random() - .5) * ds; DANGER = 1; CAM.trauma = 1;
+    if (P.deathT < 0.4) camera.position.lerp(hp, dt * 0.7);
+    if (P.deathT > 0.8) $('fade').style.opacity = 1;
     if (P.deathT > 1.6 && $('dead').style.display !== 'flex') { $('dead').style.display = 'flex'; document.exitPointerLock(); }
     renderFrame(time, dt); return;
   }
@@ -3327,7 +3867,7 @@ function step(dt, time) {
   if (FOTO.cool > 0) FOTO.cool -= dt;
   if (FOTO.flashT > 0) { FOTO.flashT -= dt; const k = Math.max(0, FOTO.flashT / 2.8); FOTO.light.intensity = 1400 * k * k * (Math.random() < 0.15 ? 0.5 : 1); ARC_RIGS.forEach(g => { g.material.emissiveIntensity = 12 * k; }); if (FOTO.flashT <= 0) { FOTO.light.intensity = 0; ARC_RIGS.forEach(g => { g.material.emissiveIntensity = 0; }); } }
   // capítulo IV: primeira descida às galerias, contagem até o amanhecer, o sol
-  if (PROG.ch === 4 && !PROG.visitedGal && UNDER.has(P.region)) { PROG.visitedGal = true; saveProgress(); setTimeout(() => radio([12]), 1200); }
+  if (PROG.ch === 4 && !PROG.visitedGal && UNDER.has(P.region)) { PROG.visitedGal = true; saveProgress(); setTimeout(() => radio([12]), 1200); eliasSay(9, 11); }
   if (DAWN.phase === 'run') { DAWN.t += dt; if (Math.random() < dt * 0.35) emitNoise(P.pos, 40, 3); if (DAWN.t >= CFG.dawnTime) sunrise(); }
   if (DAWN.phase === 'sun') {
     SUN.intensity = lerp(SUN.intensity, 420, dt * 0.25); moon.base = lerp(moon.base, 30, dt * 0.2);
@@ -3335,7 +3875,7 @@ function step(dt, time) {
   }
   if (AI.state === 'sunwalk') {
     AI.t += dt; AI.speed = lerp(AI.speed, 1.0, dt * 2); AI.move(dt);
-    if (!AI.path.length || AI.t > 30) { AI.state = 'dying'; AI.dyingKind = 'peace'; AI.t = 0; AI.speed = 0; }
+    if (!AI.path.length || AI.t > 30) { AI.state = 'dying'; AI.dyingKind = PROG.heard7 ? 'peace' : 'burn'; AI.t = 0; AI.speed = 0; if (!PROG.heard7) { SFX.scream(3); AI.burnAcc = 1; } }
   }
   // a criatura queimando (cap. III) ou se desfazendo em paz ao sol (cap. IV)
   if (AI.state === 'dying') {
@@ -3350,6 +3890,7 @@ function step(dt, time) {
       if (Math.random() < dt * 30) puff(AI.headPos(_v3), 1, true);
       if (Math.random() < dt * 12) puff(C.spine.localToWorld(_v3.set(rand(-.15, .15), rand(0, .8), 0)), 1, true);
       if (A.ctx) A.sizzleG.gain.setTargetAtTime(0.4, A.ctx.currentTime, 0.05);
+      if (DAWN.phase === 'sun' && AI.t > 7) { AI.state = 'dead'; C.root.visible = false; if (A.ctx) A.sizzleG.gain.setTargetAtTime(0, A.ctx.currentTime, 0.5); }
     }
   }
   updateObjective();
@@ -3365,6 +3906,8 @@ function step(dt, time) {
   for (const it of interact) if (it.glint && it.active) it.glint.material.opacity = 0.25 + Math.sin(time * 3 + it.pos.x) * 0.15;
   updateDanger();
   updateAudio(dt, time);
+  updateTerror(dt, time);
+  chapterMusic(); updateV11(dt, time);
   // HUD
   $('stam').firstChild.style.width = (P.stamina * 100) + '%';
   $('stam').firstChild.style.background = P.holdBreath ? '#e0d070' : '#8fb3c9';
@@ -3373,5 +3916,5 @@ function step(dt, time) {
   P.noiseLevel = Math.max(0, P.noiseLevel - dt);
 }
 requestAnimationFrame(frame);
-window.__FORMOL = { A, get paused() { return paused; }, get playing() { return playing; }, pauseGame: () => pauseGame(), quickStart: () => { audioInit(); decodeAssets(); $('splash').style.display = 'none'; $('menu').style.display = 'none'; startGame(); }, get MODE() { return MODE; }, CINE, TORCH, hand, CAM, cycleShake, AI, P, fl, CFG, scene, camera, renderer, LIGHTS, lightGrid, interact, sim: (sec) => { let t = performance.now() / 1000; for (let k = 0; k < sec * 30; k++) { if (P.dead || P.won) break; step(1 / 30, t += 1 / 30); } }, setPaused: v => { paused = v; }, startPlaying: () => { playing = true; stats.t0 = performance.now(); }, killPlayer, respawn, installOne, startIgnition, computeLightGrid, PROG, UI, closeModal, DOORS, TAPES, LAMPS, CARD, CONSOLE, FOTO, FUSES, pressInteract, findInteract, regionAt, installLamp, showMap, get blocked() { return blocked; }, W, H, DAWN, CRANK, STREET, playTape, stopTape, TP, sunrise, startDawnRun, playChapter, refreshChapters, openTapeList, CELESTE, SUN, MANDATORY_TAPES, applyLights };
+window.__FORMOL = { A, get paused() { return paused; }, get playing() { return playing; }, pauseGame: () => pauseGame(), quickStart: () => { audioInit(); decodeAssets(); $('splash').style.display = 'none'; $('menu').style.display = 'none'; startGame(); }, get MODE() { return MODE; }, CINE, TORCH, hand, CAM, cycleShake, AI, P, fl, CFG, scene, camera, renderer, LIGHTS, lightGrid, interact, sim: (sec) => { let t = performance.now() / 1000; for (let k = 0; k < sec * 30; k++) { if (P.dead || P.won) break; step(1 / 30, t += 1 / 30); } }, setPaused: v => { paused = v; }, startPlaying: () => { playing = true; stats.t0 = performance.now(); }, killPlayer, respawn, installOne, startIgnition, computeLightGrid, PROG, UI, closeModal, DOORS, TAPES, LAMPS, CARD, CONSOLE, FOTO, FUSES, pressInteract, findInteract, regionAt, installLamp, showMap, get blocked() { return blocked; }, W, H, DAWN, CRANK, STREET, playTape, stopTape, TP, sunrise, startDawnRun, playChapter, refreshChapters, openTapeList, CELESTE, SUN, MANDATORY_TAPES, applyLights, THROWN, throwItem, cutscene, CUTS, eliasSay, ACH, EXTRAS, STATS, MUS, setMusic, PHOTOS, DRAWER, PHONE, DEBRIS, PHANTOM, SCARE, answerPhone, stats, OPT, get FEAR() { return FEAR; }, set FEAR(v) { FEAR = v; } };
 })();

@@ -47,6 +47,22 @@
   .tapeList li{cursor:pointer;padding:9px 6px;border-bottom:1px solid rgba(255,255,255,.08);letter-spacing:.12em;color:#c9d6cf}
   .tapeList li:hover{background:rgba(255,255,255,.06);color:#fff}
   .tapeList li.dis{cursor:default;opacity:.5}
+  #items{font-size:11px;letter-spacing:.15em;opacity:.8;margin-top:2px}
+  #ach{position:fixed;right:24px;top:58px;z-index:21;min-width:230px;padding:12px 18px;background:rgba(8,12,12,.92);border:1px solid rgba(200,220,210,.15);border-left:2px solid #f0b35a;font:300 15px Oswald,sans-serif;letter-spacing:.2em;color:#eef2ef;opacity:0;transform:translateY(-10px);transition:opacity .5s,transform .5s;pointer-events:none}
+  #ach small{display:block;font-size:10px;letter-spacing:.4em;color:#f0b35a;margin-bottom:3px}
+  #ach span{display:block;font-size:11px;letter-spacing:.1em;color:#9aa8a2;margin-top:3px}
+  .achList{list-style:none;padding:0;margin:8px 0 14px;columns:2;column-gap:20px}
+  .achList li{break-inside:avoid;padding:5px 0;color:#56605c;letter-spacing:.12em;font-size:13px}
+  .achList li.got{color:#e8eee9}
+  .achList li small{display:block;font-size:10px;opacity:.7;letter-spacing:.06em}
+  #doc .paper.photo{background:#ece8dc;border:14px solid #f4f1e8;border-bottom-width:40px}
+  #loadInfo{position:absolute;right:4vw;bottom:62px;font:300 11px Oswald,sans-serif;letter-spacing:.3em;color:#8fa39b}
+  #win_stats{font:300 12px Oswald,sans-serif;letter-spacing:.22em;color:#9fb0a9;margin:6px 0 18px;line-height:2}
+  #roll{position:relative;height:150px;overflow:hidden;width:min(520px,80vw);margin:10px auto 18px;mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent);-webkit-mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent)}
+  #roll .r{position:absolute;left:0;right:0;top:100%;font:300 13px Oswald,sans-serif;letter-spacing:.25em;color:#c9d4cf;line-height:2.1}
+  #roll.go .r{animation:roll 46s linear forwards}
+  #roll .r b{display:block;color:#f0b35a;font-weight:300;margin-top:14px;font-size:11px;letter-spacing:.45em}
+  @keyframes roll{to{top:-560%}}
   #chap_k{margin-top:44px;font:300 11px Oswald,sans-serif;letter-spacing:.4em;color:#6f817a;opacity:0;transition:opacity 1s}
   #prompt{position:fixed;left:50%;top:58%;transform:translateX(-50%);font-size:14px;letter-spacing:1px;text-shadow:0 0 6px #000;white-space:nowrap}
   #prog{position:fixed;left:50%;top:62%;transform:translateX(-50%);width:200px;height:5px;background:rgba(255,255,255,.1);display:none}
@@ -132,7 +148,9 @@
 <div id="hud">
   <div>BATERIA <span id="batt_t">100%</span></div><div class="bar" id="batt"><i></i></div>
   <div>FÔLEGO</div><div class="bar" id="stam"><i></i></div>
+  <div id="items"></div>
 </div>
+<div id="ach"></div>
 <div id="obj"></div>
 <div id="map"><canvas id="mapc" width="660" height="500"></canvas></div>
 <div id="tsub"></div>
@@ -157,13 +175,15 @@
       <li data-act="new">NOVO JOGO</li>
       <li data-act="cont" id="contItem">CONTINUAR<small id="contInfo"></small></li>
       <li data-act="chaps">CAPÍTULOS</li>
+      <li data-act="extras">EXTRAS</li>
       <li data-act="opts">OPÇÕES</li>
       <li data-act="ctrls">CONTROLES</li>
       <li data-act="credits">CRÉDITOS</li>
     </ul>
   </div>
   <div class="foot">↑ ↓ NAVEGAR &nbsp;·&nbsp; ENTER SELECIONAR &nbsp;·&nbsp; ESC VOLTAR</div>
-  <div class="ver">VERSÃO 1.0 · 4 CAPÍTULOS</div>
+  <div class="ver">VERSÃO 1.1 · 4 CAPÍTULOS</div>
+  <div id="loadInfo"></div>
   <div class="panel" id="p_opts">
     <h3>OPÇÕES</h3>
     <div class="row"><span>VOLUME GERAL</span><input type="range" id="o_vol" min="0" max="100"></div>
@@ -172,6 +192,10 @@
     <div class="row"><span>BALANÇO DA CÂMERA</span><button class="tog" id="o_shake"></button></div>
     <div class="row"><span>LEGENDAS</span><button class="tog" id="o_subs"></button></div>
     <div class="row"><span>NARRAÇÃO</span><button class="tog" id="o_narr"></button></div>
+    <div class="row"><span>DIFICULDADE</span><button class="tog" id="o_hard"></button></div>
+    <div class="row"><span>QUALIDADE GRÁFICA</span><button class="tog" id="o_gfx"></button></div>
+    <div class="row"><span>MODO EXTRA</span><button class="tog" id="o_nolight"></button></div>
+    <p class="hint">PESADELO: bateria acaba 60% mais rápido, pilhas valem menos, ele é mais rápido e ouve mais longe, e não há mapa.</p>
     <div class="back">ESC · VOLTAR</div>
   </div>
   <div class="panel" id="p_ctrls">
@@ -182,7 +206,7 @@
       <span>C</span><span>agachar</span><span>F</span><span>ligar / desligar a lanterna</span>
       <span>BOTÃO DIREITO</span><span>foco concentrado — queima o rosto dele</span>
       <span>E</span><span>interagir · ler · esconder · segure para instalar fusível/lâmpada</span>
-      <span>T</span><span>parar a fita do walkman</span><span>TAB</span><span>mapa de evacuação</span><span>V</span><span>balanço da câmera</span><span>ESC</span><span>pausa</span>
+      <span>T</span><span>parar a fita do walkman</span><span>G</span><span>acender e jogar sinalizador</span><span>Q</span><span>jogar garrafa (distrai com barulho)</span><span>CONTROLE</span><span>analógicos · A interagir · B agachar · X lanterna · RT foco · RB sinalizador · LT garrafa · Y mapa</span><span>TAB</span><span>mapa de evacuação</span><span>V</span><span>balanço da câmera</span><span>ESC</span><span>pausa</span>
     </div>
     <div class="back">ESC · VOLTAR</div>
   </div>
@@ -195,6 +219,13 @@
       <li data-ch="4">IV · AMANHECER<small></small></li>
     </ul>
     <p class="hint">Cada capítulo é liberado quando você chega até ele. Começar um capítulo substitui o progresso salvo.</p>
+    <div class="back">ESC · VOLTAR</div>
+  </div>
+  <div class="panel" id="p_extras">
+    <h3>EXTRAS · <span id="extInfo"></span></h3>
+    <ul class="achList" id="achList"></ul>
+    <h3 style="margin-top:6px">FOTOGRAFIAS</h3>
+    <ul class="tapeList" id="galList"></ul>
     <div class="back">ESC · VOLTAR</div>
   </div>
   <div class="panel" id="p_tapes">
@@ -232,7 +263,9 @@
   </div>
 </div>
 <div id="dead" class="screen" style="display:none"><h1 class="red" style="font-size:44px">ELE TE ACHOU</h1><h2 id="dead_sub">VOLTANDO AO ÚLTIMO CHECKPOINT</h2><button class="btn" id="retry">TENTAR DE NOVO</button></div>
-<div id="win" class="screen" style="display:none;background:radial-gradient(ellipse at center,#3a2414 0%,#000 80%)"><h1 style="font-size:44px">VOCÊ ESCAPOU</h1><h2 id="win_sub"></h2><p>06:04. Pela primeira vez em cinco anos, Tomás Aurélio Reis viu o dia. Quando a luz o alcançou, ele não gritou. Sentou nas pedras do pátio, ao lado da mãe, e fechou os olhos.</p><p>Elias Prado saiu pelo portão dos fundos e andou até a avenida sem olhar para trás.</p><p>Horas depois, os bombeiros encontraram no pátio interno uma mulher de uniforme branco, sentada num banco, abraçada a um corpo embalsamado em 1983. Ela não quis sair de lá.</p><p>O laudo oficial falou em curto-circuito. O Instituto São Lázaro foi demolido em 1989.</p><p class="small">Até o fim da vida, Elias dormiu com a cortina aberta.</p><br><button class="btn" id="again">JOGAR DE NOVO</button></div>
+<div id="win" class="screen" style="display:none;background:radial-gradient(ellipse at center,#3a2414 0%,#000 80%)"><h1 style="font-size:44px" id="win_title">VOCÊ ESCAPOU</h1><h2 id="win_sub"></h2><div id="win_txt"></div><div id="win_stats"></div>
+<div id="roll"><div class="r">FORMOL<br>INSTITUTO SÃO LÁZARO · 1987<b>DIREÇÃO, DESIGN, CÓDIGO, ARTE E SOM</b>eduuhlann<b>VOZES (ELEVENLABS)</b>Narrador — Carlos<br>Elias Prado — Brian<br>Enf. Celeste Amaral Reis — Matilda<br>Dr. Antônio Varela — George<br>Tomás Aurélio Reis — Liam<br>Vigia Osmar — Bill<br>Sr. Reis — Daniel<b>EFEITOS E TRILHA</b>ElevenLabs Sound Effects<br>Web Audio procedural<b>MOTOR</b>Three.js (MIT)<b>EM MEMÓRIA DE</b>todos os pacientes do Programa Noite Longa<br><br>Obrigado por jogar.</div></div>
+<button class="btn" id="again">JOGAR DE NOVO</button></div>
 
 <script>/*THREE*/</script>
 <script>/*AUDIO*/</script>

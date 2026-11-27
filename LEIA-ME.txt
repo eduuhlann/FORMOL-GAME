@@ -14,6 +14,8 @@ CONTROLES
   E .............. interagir / ler / esconder / segurar para instalar fusível ou lâmpada
   Tab ............ mapa              V ............ balanço da câmera
   T .............. parar a fita do walkman
+  G .............. sinalizador        Q ............ jogar garrafa (distrai)
+  Controle (gamepad) também funciona.
   Esc ............ pausa             Espaço (segurar) ... pular a intro
 
 CAPÍTULOS (o mapa cresce a cada um; Menu → Capítulos para rejogar)
@@ -24,8 +26,16 @@ CAPÍTULOS (o mapa cresce a cada um; Menu → Capítulos para rejogar)
       console, apague a lanterna, atraia-o para a sala e acione a descarga.
   IV · AMANHECER — galerias subterrâneas: quarto da Celeste, manivela,
       portão do Pátio Interno e sobreviver até o sol nascer (06:04).
-  8 fitas cassete tocam no walkman com legenda (Pausa → Fitas para ouvir de novo).
+  9 fitas cassete tocam no walkman com legenda (Pausa → Fitas para ouvir de novo).
+  Dois finais. Menu → Extras: conquistas e as 6 fotografias encontradas.
   O jogo salva a cada fusível, fita, lâmpada e mudança de capítulo.
+
+TERROR
+  Ele imita vozes, sussurra no escuro e faz sua lanterna falhar quando está perto.
+  Objetos soltos no chão fazem barulho se você não estiver agachado.
+  Muito tempo no escuro ou perto dele: você começa a ouvir e ver coisas.
+  Opções → Dificuldade → PESADELO: menos bateria, ele mais rápido, sem mapa.
+  Opções → Modo extra → SEM LANTERNA (liberado depois de zerar). Opções → Qualidade gráfica.
   A história completa está em documento-de-design/LORE.md.
 
 O QUE TEM NESTE PACOTE
@@ -41,6 +51,9 @@ O QUE TEM NESTE PACOTE
      narracao/ ............... 9 falas da intro já tratadas + roteiro.txt
      altofalante/ ............ 17 falas da enfermeira Celeste (alto-falante), já tratadas
      fitas/ .................. 42 falas das 8 fitas cassete, já tratadas
+     terror/ ................. 13 efeitos e 8 sussurros da ElevenLabs (gaveta, telefone, porta, criatura...)
+     elias/ .................. 17 pensamentos do protagonista
+     musica/ ................. trilha do menu, dos 4 capítulos, do amanhecer e da perseguição
      passos/ ................. 36 passos individuais (azulejo, correndo, água, criatura)
      originais_elevenlabs/ ... arquivos brutos gerados na ElevenLabs
   codigo-fonte/
@@ -60,6 +73,6 @@ EDITAR O JOGO
 CRÉDITOS
   Direção, design, código, arte procedural e som: eduuhlann.
   Narração e passos: ElevenLabs (voz "Carlos – Resonant & Majestic Storyteller").
-  Alto-falante e fitas: ElevenLabs — Celeste (Matilda), Dr. Varela (George),
-  Tomás (Liam), vigia Osmar (Bill).
+  Vozes, efeitos e trilha: ElevenLabs — Elias (Brian), Celeste (Matilda),
+  Dr. Varela (George), Tomás (Liam), vigia Osmar (Bill), Sr. Reis (Daniel).
   Three.js (MIT).

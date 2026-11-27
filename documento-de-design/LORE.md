@@ -14,7 +14,8 @@ Em 1982, um rapaz de 19 anos com fotofobia, Tomás Aurélio Reis, é internado p
 | **Tomás Aurélio Reis**, "Paciente 14", "O Residente" | Internado aos 19 anos por "medo da luz". Nove meses no escuro, morto na reexposição de 12/03/1983, embalsamado na gaveta 7. Voltou. | A criatura. Também é a voz das fitas 2, 3, 6 e 8. |
 | **Celeste Amaral Reis**, 52 | Enfermeira-chefe do Programa Noite Longa. É a mãe de Tomás: aceitou o emprego para ficar perto do filho e virou cúmplice. Mentia todo dia para ele: "ainda é noite". | Voz dos alto-falantes (capítulos I–IV), fitas 4, 6 e 7, a mulher no banco do pátio no final. |
 | **Dr. Antônio Varela** | Diretor clínico, criador do programa. Formolizou o corpo de Tomás com as próprias mãos. Viveu trancado no Pavilhão Leste de 1984 a 1987. | Fitas 2–6. Morto no escritório (pentobarbital), com uma carta e o cartão da diretoria. |
-| **Osmar** | Vigia noturno. Sabia de tudo e fingia não saber. Desaparece às 02h de 03/11/87. | Fita 1 e bilhetes do capítulo I. |
+| **Osmar** | Vigia noturno. Sabia de tudo e fingia não saber. Desde 1985 se escondia num quarto secreto atrás da autópsia, com a lâmpada acesa a noite inteira. Na noite de 03/11/87 a lâmpada queimou. | Fita 1, bilhetes do capítulo I e o corpo no esconderijo secreto. |
+| **Sr. Reis** (pai de Tomás) | Internou o filho e disse ao Varela que "ninguém vem buscar". Escondeu da esposa onde o filho estava. | Fita 9 (esconderijo do vigia). |
 | Padre Inácio, Dr. Saulo (legista), o pai de Tomás | Testemunhas que escolheram não ver. | Só em documentos. |
 
 ## Linha do tempo
@@ -81,7 +82,16 @@ Os bombeiros encontram, horas depois, uma mulher de uniforme branco sentada no p
 - **A mentira de quem ama.** Celeste não é vilã nem heroína: ficou perto do filho mentindo para ele. O jogo inteiro é ela tentando, tarde demais, dizer a verdade ("já é dia").
 - **Instituições que esquecem.** Pai, médico, padre, legista, vigia e prefeitura: todos escolheram não ver.
 
-## As 8 fitas cassete
+## Elias
+
+O protagonista pensa em voz alta em 17 momentos (voz Brian): ao começar, ao pegar o primeiro fusível, ao ver a criatura pela primeira vez, quando a porta não abre, nas cutscenes, com a pilha acabando, escondido, no esconderijo do Osmar e nos dois finais.
+
+## Os dois finais
+
+- **Já é dia (verdadeiro):** com a fita 7 ouvida até o fim, a Celeste está no banco do pátio. Tomás caminha até ela e se desfaz em paz na luz.
+- **Noite eterna:** sem ouvir a fita 7, o pátio está vazio. Tomás queima sozinho ao sol, gritando. A Celeste é encontrada dias depois nas galerias, repetindo que ainda era noite.
+
+## As 9 fitas cassete
 
 Tocam no walkman do Elias enquanto ele anda, com legenda. Ficam guardadas em Pausa → Fitas. Vozes geradas na ElevenLabs (modelo eleven_multilingual_v2).
 
@@ -95,6 +105,7 @@ Tocam no walkman do Elias enquanto ele anda, com legenda. Ficam guardadas em Pau
 | 6 | III | Sala de fototerapia | Varela, Tomás, Celeste | A reexposição: "Mãe, por que você não apaga?" |
 | 7 | IV | Quarto da Celeste | Celeste | "Eu sou a mãe dele." |
 | 8 | IV | Ossário | Tomás | Ele reconheceu a mãe pela música, em 1983. |
+| 9 | I (secreta) | Esconderijo do vigia | Sr. Reis (Daniel), Varela | O pai: "Se ele perguntar, diga que ninguém vem buscar." |
 
 ## Alto-falante (Celeste, voz Matilda)
 

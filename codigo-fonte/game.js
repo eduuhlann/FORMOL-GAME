@@ -31,15 +31,16 @@ const CFG = {
     recoilTime: 6, fleeExposure: 0.3, fleeTime: 5, fleeAway: 20, lostTime: 3, intuition: 1.5, searchTime: 25, investigateTime: 12,
     levelSpeed: [1, 1, 1.08, 1.16, 1.25], levelHear: [1, 1, 1.2, 1.4, 1.6]
   },
-  ignitionTime: 25
+  ignitionTime: 25, dawnTime: 75
 };
 const CS = CFG.cell;
 
 /* ---------------------------------------------------------------
-   MAPA — grade 66 x 34 (células de 2 m), gerada por retângulos
-   x 0–43: prédio principal (cap. I) · x 44–65: Pavilhão Leste (cap. II e III)
+   MAPA — grade 66 x 50 (células de 2 m), gerada por retângulos. Cresce a cada capítulo:
+   I: prédio principal (x 0–43) · II: Pavilhão Leste, ala norte · III: capela, fototerapia, crematório
+   IV: galerias subterrâneas e Pátio Interno (z 33–49)
    --------------------------------------------------------------- */
-const W = 66, H = 34;
+const W = 66, H = 50;
 const grid = new Array(W * H).fill('#');
 const idx = (x, z) => z * W + x;
 const inb = (x, z) => x >= 0 && z >= 0 && x < W && z < H;
@@ -91,8 +92,27 @@ carve(44, 16, 52, 24); carve(48, 15, 48, 15);
 carve(55, 16, 64, 24); grid[idx(59, 15)] = 'X'; carve(60, 25, 60, 25); grid[idx(60, 26)] = 'X';
 // crematório
 carve(45, 25, 45, 26); carve(44, 27, 61, 32);
+grid[idx(48, 15)] = 'X';                                         // porta da capela (abre no capítulo III)
+
+// ===== GALERIAS SUBTERRÂNEAS + PÁTIO INTERNO (capítulo IV) =====
+grid[idx(53, 33)] = 'X'; grid[idx(15, 33)] = 'X';                // alçapão do crematório · grade do subsolo
+carve(53, 34, 53, 34); carve(15, 34, 15, 34);
+carve(10, 35, 62, 35);                                           // túnel principal
+carve(12, 36, 12, 43); carve(28, 36, 28, 43); carve(46, 36, 46, 43);   // poços de ligação
+carve(12, 43, 50, 43);                                           // túnel sul
+carve(16, 38, 24, 41); carve(13, 39, 15, 39);                    // ossário
+carve(32, 38, 42, 41); carve(29, 40, 31, 40); carve(43, 39, 45, 39);   // reservatório
+carve(56, 38, 62, 42); carve(60, 36, 60, 37);                    // quarto da enfermeira Celeste
+grid[idx(30, 44)] = 'X'; carve(22, 45, 38, 48);                  // portão gradeado e Pátio Interno (céu aberto)
 
 function regionAt(x, z) {
+  if (z >= 33) {
+    if (z >= 44 && x >= 22 && x <= 38) return 'patio';
+    if (x >= 56 && z >= 38 && z <= 42) return 'quarto';
+    if (x >= 13 && x <= 24 && z >= 38 && z <= 41) return 'ossario';
+    if (x >= 29 && x <= 45 && z >= 38 && z <= 41) return 'reservatorio';
+    return 'galerias';
+  }
   if (x >= 44) {
     if (z <= 12) return x >= 58 ? (z <= 7 ? 'diretoria' : 'gravacao') : 'privacao';
     if (z <= 14) return 'leste';
@@ -110,9 +130,13 @@ const REGION_NAME = {
   corredor: 'Corredor Central', necroterio: 'Necrotério', recepcao: 'Recepção',
   autopsia: 'Autópsia e Laboratório', subsolo: 'Subsolo', rua: 'Saída',
   leste: 'Pavilhão Leste', privacao: 'Câmaras de Privação', diretoria: 'Diretoria — Dr. Varela', gravacao: 'Sala de Gravação',
-  capela: 'Capela', fototerapia: 'Sala de Fototerapia', crematorio: 'Crematório'
+  capela: 'Capela', fototerapia: 'Sala de Fototerapia', crematorio: 'Crematório',
+  galerias: 'Galerias Subterrâneas', ossario: 'Ossário', reservatorio: 'Reservatório', quarto: 'Quarto da Enf. Celeste', patio: 'Pátio Interno'
 };
-const EAST = new Set(['leste', 'privacao', 'diretoria', 'gravacao', 'capela', 'fototerapia', 'crematorio']);
+// capítulo em que cada área passa a fazer parte do jogo (o mapa cresce a cada capítulo)
+const REGION_CH = { leste: 2, privacao: 2, diretoria: 2, gravacao: 2, capela: 3, fototerapia: 3, crematorio: 3, galerias: 4, ossario: 4, reservatorio: 4, quarto: 4, patio: 4 };
+const EAST = new Set(Object.keys(REGION_CH));
+const UNDER = new Set(['galerias', 'ossario', 'reservatorio', 'quarto', 'patio']);
 
 const isWall = (x, z) => !inb(x, z) || grid[idx(x, z)] === '#';
 const blocked = new Uint8Array(W * H);
@@ -323,7 +347,7 @@ function buildWalls() {
     let adj = null;
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, nz = z + dz; if (inb(nx, nz) && grid[idx(nx, nz)] !== '#') { adj = regionAt(nx, nz); break; } }
     if (!adj) continue;
-    const kind = DRAWER_CELLS.has(idx(x, z)) ? 'drawers' : (adj === 'subsolo' || adj === 'rua' || adj === 'crematorio') ? 'concrete' : 'wall';
+    const kind = DRAWER_CELLS.has(idx(x, z)) ? 'drawers' : (adj === 'subsolo' || adj === 'rua' || adj === 'crematorio' || UNDER.has(adj)) ? 'concrete' : 'wall';
     lists[kind].push([x, z]);
   }
   const geo = new THREE.BoxGeometry(CS, CFG.wallH, CS);
@@ -350,6 +374,17 @@ buildWalls();
   c3.rotation.x = Math.PI / 2; c3.position.set(53.5 * CS, CFG.wallH, 30.5 * CS); level.add(c3);
   const r3 = new THREE.Mesh(new THREE.PlaneGeometry(18 * CS, 6 * CS), M.wet);
   r3.rotation.x = -Math.PI / 2; r3.position.set(53 * CS, 0.01, 30 * CS); r3.receiveShadow = true; level.add(r3);
+  // galerias: teto baixo de concreto (o pátio fica a céu aberto) e piso molhado
+  const c4 = new THREE.Mesh(new THREE.PlaneGeometry(W * CS, 12 * CS), M.concrete);
+  c4.rotation.x = Math.PI / 2; c4.position.set(W * CS / 2, CFG.wallH, 39 * CS); level.add(c4);
+  const r4 = new THREE.Mesh(new THREE.PlaneGeometry(54 * CS, 11 * CS), M.wet);
+  r4.rotation.x = -Math.PI / 2; r4.position.set(36 * CS, 0.01, 39.5 * CS); r4.receiveShadow = true; level.add(r4);
+  // água parada do reservatório
+  const wt = new THREE.Mesh(new THREE.PlaneGeometry(11 * CS, 4 * CS), new THREE.MeshStandardMaterial({ color: 0x0b1210, roughness: 0.04, metalness: 0.6, transparent: true, opacity: 0.82 }));
+  wt.rotation.x = -Math.PI / 2; wt.position.set(37.5 * CS, 0.06, 40 * CS); level.add(wt);
+  // pátio: lajes de pedra
+  const pt = new THREE.Mesh(new THREE.PlaneGeometry(17 * CS, 4 * CS), new THREE.MeshStandardMaterial({ map: T.concrete, color: 0x8a8678, roughness: 0.9 }));
+  pt.rotation.x = -Math.PI / 2; pt.position.set(30.5 * CS, 0.012, 47 * CS); pt.receiveShadow = true; level.add(pt);
 }
 
 /* ---------------------------------------------------------------
@@ -476,6 +511,11 @@ function addPickup(type, n, x, z, opts = {}) {
     for (const sx of [-0.18, 0.18]) { const cap = cyl(0.06, 0.06, 0.06, M.ceramic, sx, 0.06, 0, g, 14); cap.rotation.z = Math.PI / 2; const pin = cyl(0.012, 0.012, 0.05, M.brass, sx * 1.3, 0.06, 0, g, 8); pin.rotation.z = Math.PI / 2; }
     for (const sx of [-0.05, 0.05]) { const e = cyl(0.006, 0.006, 0.1, M.steel, sx * 1.6, 0.06, 0, g, 6); e.rotation.z = Math.PI / 2; }
     gc = 0xe8f4ff; gs = 0.6;
+  } else if (type === 'crank') {
+    const ir = cyl(0.025, 0.025, 0.5, M.rust, 0, 0.03, 0, g, 8); ir.rotation.z = Math.PI / 2;
+    const arm = cyl(0.02, 0.02, 0.22, M.rust, 0.25, 0.03, 0.1, g, 6); arm.rotation.x = Math.PI / 2;
+    const hd = cyl(0.03, 0.03, 0.12, M.wood, 0.25, 0.06, 0.2, g, 8);
+    gc = 0xffc070; gs = 0.45;
   } else if (type === 'card') {
     const ct = tex(128, 80, (q, w, h) => { q.fillStyle = '#e8e4da'; q.fillRect(0, 0, w, h); q.fillStyle = '#7a1510'; q.fillRect(0, 0, w, 16); q.fillStyle = '#111'; q.font = 'bold 12px sans-serif'; q.fillText('INST. SÃO LÁZARO', 8, 34); q.font = '11px sans-serif'; q.fillText('DIRETORIA CLÍNICA', 8, 52); q.fillText('DR. A. VARELA', 8, 68); });
     const cm = new THREE.Mesh(new THREE.BoxGeometry(0.086, 0.003, 0.054), [M.ceramic, M.ceramic, new THREE.MeshStandardMaterial({ map: ct, roughness: 0.5 }), M.ceramic, M.ceramic, M.ceramic]); cm.position.y = 0.003; g.add(cm);
@@ -575,6 +615,61 @@ addTable(59, 20, false); addPapers(58, 22, 5); addWheelchair(62, 17, true);
 addFurnace(47, 32); addFurnace(51, 32); addFurnace(55, 32);
 addTable(49, 29, true); addTable(57, 29, false); addBed(58, 31, { body: true });
 addLocker(44, 30); addLocker(61, 31); addBoiler(60, 28); addPipe(44, 28, 61, 28, 2.8);
+// --- galerias subterrâneas ---
+addPipe(10, 35, 62, 35, 2.75); addPipe(12, 43, 50, 43, 2.85);
+// ossário: prateleiras de ossos
+function addBoneShelf(x, z) {
+  const c = center(x, z), g = new THREE.Group(); g.position.copy(c); const [dx, dz] = wallDir(x, z); g.rotation.y = Math.atan2(-dx, -dz);
+  g.position.x += dx * 0.55; g.position.z += dz * 0.55;
+  box(1.9, 2.4, 0.6, M.rust, 0, 1.2, 0, g);
+  const bm = new THREE.MeshStandardMaterial({ color: 0xcfc6a8, roughness: 0.75 });
+  for (let r = 0; r < 4; r++) for (let i = 0; i < 6; i++) { const sk = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), bm); sk.scale.set(0.85, 1, 1.1); sk.position.set(-0.75 + i * 0.3 + rand(-.04, .04), 0.42 + r * 0.55, -0.1); sk.rotation.y = rand(-1, 1); sk.castShadow = true; g.add(sk); if (Math.random() < 0.6) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.42, 6), bm); b.rotation.z = Math.PI / 2 + rand(-.2, .2); b.position.set(-0.75 + i * 0.3, 0.33 + r * 0.55, 0.12); g.add(b); } }
+  level.add(g); props.push({ i: idx(x, z), block: true });
+}
+[[16, 38], [19, 38], [22, 38], [16, 41], [19, 41], [24, 41]].forEach(p => addBoneShelf(...p));
+addTable(21, 40, true); addPapers(18, 40, 5);
+// reservatório: tanques e encanamento
+addBoiler(33, 38); addBoiler(41, 41); addLocker(42, 38); addLocker(32, 41);
+// quarto da enfermeira Celeste
+addBed(62, 39); addDesk(57, 42); addShelf(56, 38); addLocker(62, 42);
+{ // velas e fotografias sobre a mesa e o chão
+  const cm = new THREE.MeshStandardMaterial({ color: 0xe8dcc0, emissive: 0xffa040, emissiveIntensity: 0.4, roughness: 0.6 });
+  for (let i = 0; i < 12; i++) { const h = rand(0.06, 0.25); cyl(0.02, 0.024, h, cm, 59 * CS + rand(-1.6, 1.6), h / 2, 41 * CS + rand(-1, 1.4), level, 8); }
+}
+// pátio interno: árvore seca, banco, chafariz, portão para a rua
+{
+  const tr = new THREE.Group(); tr.position.copy(center(26, 46)); level.add(tr);
+  const bark = new THREE.MeshStandardMaterial({ color: 0x2a221a, roughness: 1 });
+  cyl(0.18, 0.28, 3.4, bark, 0, 1.7, 0, tr, 8);
+  for (let i = 0; i < 7; i++) { const b = cyl(0.03, 0.08, rand(1.2, 2.2), bark, 0, 0, 0, tr, 5); b.position.set(rand(-.2, .2), rand(2.2, 3.3), rand(-.2, .2)); b.rotation.set(rand(-1, 1), rand(0, 6), rand(-1.1, 1.1)); }
+  props.push({ i: idx(26, 46), block: true });
+  const fo = new THREE.Group(); fo.position.copy(center(34, 47)); level.add(fo);
+  cyl(1.1, 1.2, 0.5, M.concrete, 0, 0.25, 0, fo, 20); cyl(0.95, 0.95, 0.02, new THREE.MeshStandardMaterial({ color: 0x0c1410, roughness: 0.05, metalness: 0.5 }), 0, 0.45, 0, fo, 20); cyl(0.12, 0.15, 1.1, M.concrete, 0, 0.8, 0, fo, 10);
+  props.push({ i: idx(34, 47), block: true });
+  const bench = new THREE.Group(); bench.position.copy(center(30, 47)); bench.position.z += 0.5; level.add(bench);
+  box(1.8, 0.08, 0.5, M.wood, 0, 0.45, 0, bench); box(1.8, 0.5, 0.06, M.wood, 0, 0.78, 0.25, bench);
+  for (const sx of [-0.8, 0.8]) box(0.08, 0.45, 0.45, M.steel, sx, 0.22, 0, bench);
+  // portão de ferro para a rua (parede sul do pátio)
+  const gg = new THREE.Group(); gg.position.set(30 * CS + 1, 0, 49 * CS + 0.05); level.add(gg);
+  for (let i = 0; i < 13; i++) cyl(0.02, 0.02, 2.6, M.rust, -1.5 + i * 0.25, 1.3, 0, gg, 6);
+  box(3.2, 0.08, 0.06, M.rust, 0, 2.55, 0, gg); box(3.2, 0.08, 0.06, M.rust, 0, 0.3, 0, gg);
+}
+// a enfermeira Celeste, sentada no banco do pátio, esperando o filho
+const CELESTE = new THREE.Group();
+{
+  const g = CELESTE; g.position.copy(center(30, 47)); g.position.z += 0.45; g.rotation.y = Math.PI; level.add(g);
+  const uni = new THREE.MeshStandardMaterial({ color: 0xbdb8a8, roughness: 0.9 }), skin = new THREE.MeshStandardMaterial({ color: 0xa89484, roughness: 0.7 }), hair = new THREE.MeshStandardMaterial({ color: 0x6d6a66, roughness: 0.8 });
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.42, 6, 12), uni); torso.position.set(0, 0.92, -0.05); torso.rotation.x = 0.12; torso.scale.z = 0.75; g.add(torso);
+  const lap = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.3, 6, 12), uni); lap.rotation.x = Math.PI / 2; lap.scale.set(1.25, 1, 0.8); lap.position.set(0, 0.56, 0.17); g.add(lap);
+  const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.27, 0.34, 16, 1, true), uni); skirt.material = uni.clone(); skirt.material.side = THREE.DoubleSide; skirt.position.set(0, 0.36, 0.34); g.add(skirt);
+  const shawl = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.45), new THREE.MeshStandardMaterial({ color: 0x4a4038, roughness: 1, side: THREE.DoubleSide })); shawl.scale.set(1.05, 0.9, 0.85); shawl.position.set(0, 1.12, -0.04); g.add(shawl);
+  for (const sx of [-0.1, 0.1]) { const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.38, 4, 8), skin); leg.position.set(sx, 0.25, 0.38); g.add(leg); }
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), skin); head.position.set(0, 1.38, 0.02); head.scale.set(0.9, 1.1, 1); g.add(head);
+  const bun = new THREE.Mesh(new THREE.SphereGeometry(0.115, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6), hair); bun.position.set(0, 1.4, -0.01); g.add(bun);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.1), new THREE.MeshStandardMaterial({ color: 0xe8e4d8 })); cap.position.set(0, 1.5, 0.02); g.add(cap);
+  for (const sx of [-1, 1]) { const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.42, 4, 8), uni); arm.position.set(sx * 0.2, 0.85, 0.12); arm.rotation.x = -0.9; g.add(arm); }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
+}
 rebuildBlocked();
 
 /* ---------------------------------------------------------------
@@ -633,7 +728,7 @@ const DECAL = {
   })
 };
 const decalMats = {}; for (const k in DECAL) decalMats[k] = new THREE.MeshStandardMaterial({ map: DECAL[k], transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, roughness: k === 'blood' || k === 'smear' || k === 'hand' ? 0.22 : 0.95, metalness: 0 });
-const BLOODY = { necroterio: 0.6, autopsia: 0.6, pacientes: 0.45, corredor: 0.3, subsolo: 0.25, enfermaria: 0.25, admin: 0.12, recepcao: 0.15, rua: 0, leste: 0.35, privacao: 0.55, diretoria: 0.2, gravacao: 0.15, capela: 0.3, fototerapia: 0.5, crematorio: 0.45 };
+const BLOODY = { necroterio: 0.6, autopsia: 0.6, pacientes: 0.45, corredor: 0.3, subsolo: 0.25, enfermaria: 0.25, admin: 0.12, recepcao: 0.15, rua: 0, galerias: 0.3, ossario: 0.5, reservatorio: 0.2, quarto: 0.1, patio: 0, leste: 0.35, privacao: 0.55, diretoria: 0.2, gravacao: 0.15, capela: 0.3, fototerapia: 0.5, crematorio: 0.45 };
 for (let n = 0; n < 110; n++) {
   const i = pick(FREE_CELLS_PRE()), x = i % W, z = (i / W) | 0, rg = regionAt(x, z); if (rg === 'rua') continue;
   const kind = Math.random() < BLOODY[rg] ? (Math.random() < 0.35 ? 'smear' : 'blood') : (Math.random() < 0.7 ? 'stain' : 'mold');
@@ -682,17 +777,18 @@ addNote(53, 28, 'ORDEM DE SERVIÇO 11/1984', 'Incinerar todos os prontuários do
 addNote(62, 9, 'ETIQUETA DO ARQUIVO', 'FITAS — PROGRAMA NOITE LONGA\nSessões 001 a 094 (1982–1983)\n\nTodas as fitas foram retiradas. Faltam três.\nUma voltou para a câmara 3. Uma está aqui. A última o doutor leva para a capela.');
 
 // fitas, lâmpadas de arco e o cartão da diretoria
-const TAPE_TEXT = {
-  1: ['FITA 1 — SESSÃO 001 · 02/06/1982', '[chiado]\n\nVARELA: Programa Noite Longa, sessão um. Paciente catorze, Tomás Aurélio Reis, dezenove anos. Internado pelo pai por "medo da luz".\n\nA ironia me agrada. Vou ensiná-lo a não precisar dela.\n\nCâmara três selada. Nenhum fóton. Alimentação pela gaveta.\n\nTOMÁS (abafado): Doutor? Doutor, acende a luz. Só um pouquinho.\n\nVARELA: Não, Tomás. A partir de hoje, a noite é a sua casa.\n\n[clique]'],
-  2: ['FITA 2 — SESSÃO 094 · 11/03/1983', '[chiado]\n\nVARELA: Nove meses. As pupilas não contraem mais. A pele perdeu todo o pigmento. Ele anda no escuro absoluto sem tocar nas paredes.\n\nEle não fala mais comigo. Ele sorri.\n\nAmanhã, dia doze, faremos a reexposição. As lâmpadas de arco da sala de fototerapia. Dez mil lux.\n\nQuero ver o que a luz faz com quem esqueceu dela.\n\n[pausa longa]\n\nAnoto para a posteridade: dia doze.\n\n[clique]'],
-  3: ['FITA 3 — SEM DATA', '[chiado, voz rouca, garrafa batendo na mesa]\n\nVARELA: Ele queimou. Gritou por quatro minutos inteiros e eu não desliguei. Eu precisava ver.\n\nInjetei o formol eu mesmo, para ninguém ver as queimaduras. Gaveta sete.\n\nTrês dias depois a gaveta estava aberta. Por dentro.\n\nEle me visita. Não me mata. Acho que ainda pensa que eu sou o médico dele.\n\nAcendo as velas da capela toda noite. Ele odeia a luz agora. Fui eu que ensinei isso.\n\nO escritório está trancado. O código é o dia e o mês em que eu o matei. Doze. Zero três.\n\n[clique]']
-};
 const LETTER = ['CARTA DO DR. ANTÔNIO VARELA', 'Senhor eletricista,\n\nquando o senhor ler isto, eu já terei tomado o frasco inteiro. Quatro anos esperando alguém religar a luz deste lugar e, quando finalmente acontece, descubro que não tenho coragem de encarar o que vem depois.\n\nO cartão no meu bolso abre a sala de fototerapia. A porta da frente não abre com cartão nenhum: a trava de segurança só cede com uma sobrecarga na rede. A descarga das lâmpadas de arco faz isso.\n\nDez mil lux. Foi assim que eu matei o Tomás. É a única coisa que pode terminar o que eu comecei.\n\nA Celeste vai falar com o senhor pelo alto-falante. Confie nela mais do que confiaria em mim: foi ela que alimentou o menino durante nove meses e nunca deixou de ir até a gaveta.\n\nEscondi as três lâmpadas dele: uma no forno do crematório, uma no altar da capela e uma na câmara fria do necrotério, onde ele dormiu três dias.\n\nEncaixe as três no console. Depois apague a sua lanterna: ele não chega perto de quem carrega luz. Deixe que ele o siga para dentro da sala, e só então acione a descarga. E não olhe para a luz.\n\nPeça perdão a ele por mim. Ele não vai ouvir.\n\n— A. Varela'];
-const TAPES = [addPickup('tape', 1, 52, 1), addPickup('tape', 2, 60, 9), addPickup('tape', 3, 44, 17)];
+const TAPES = [[1, 30, 4], [2, 24, 10], [3, 52, 1], [4, 60, 9], [5, 52, 9], [6, 62, 23], [7, 57, 39], [8, 22, 39]].map(([n, x, z]) => addPickup('tape', n, x, z));
+const MANDATORY_TAPES = [3, 4, 5];   // as três sessões do Dr. Varela revelam o código do escritório
+const CRANK = addPickup('crank', 1, 59, 41);
+addNote(60, 42, 'FOTOGRAFIA', 'Uma praia, um dia de sol forte. Uma mulher de cabelo preso abraça um menino de uns oito anos que cobre os olhos com a mão e ri.\n\nNo verso, a lápis:\n"Celeste e Tomás — Cabo Frio, 1971.\nEle reclamou do sol o dia inteiro."');
+addNote(36, 35, 'PLACA ENFERRUJADA', 'GALERIA DE SERVIÇO — 1931\n\nAcesso: crematório · subsolo · pátio interno\n\nO portão do pátio só abre com a manivela da enfermaria.');
+addNote(44, 43, 'BILHETE DA CELESTE', 'Senhor eletricista,\n\nse o senhor chegou até aqui, ainda dá tempo. O sol nasce às 6h04.\n\nNão o machuque mais. Ele só quer sair daqui. Eu também.\n\n— C.');
+TAPES.forEach(t => { t.mesh.userData.tape = t.n; });
 const LAMPS = [addPickup('lamp', 1, 51, 31, { hidden: true }), addPickup('lamp', 2, 48, 23, { hidden: true }), addPickup('lamp', 3, 4, 21, { hidden: true })];
 // quando só falta uma lâmpada, ela aparece na capela, ao lado do altar (fica fácil de achar)
 function lastLampToChapel(silent) {
-  if (PROG.ch < 3 || PROG.killed) return;
+  if (PROG.ch !== 3 || PROG.burned) return;
   const left = LAMPS.filter(l => l.active);
   if (left.length !== 1 || PROG.lamps.length + P.lamps.length !== 2) return;
   const l = left[0], c = center(50, 23); if (Math.hypot(l.pos.x - c.x, l.pos.z - c.z) < 1) return;
@@ -856,6 +952,22 @@ makeDoor('office', [[57, 6]], 0.25, CS, 57 * CS + 1, 6 * CS + 1, new THREE.Vecto
 makeDoor('foto', [[59, 15]], CS, 0.25, 59 * CS + 1, 15 * CS + 1, new THREE.Vector3(59 * CS + 1, 0, 14 * CS + 1.2), new THREE.Vector3(58 * CS + 1.4, 1.3, 15 * CS - 0.03), Math.PI);
 makeDoor('foto2', [[60, 26]], CS, 0.25, 60 * CS + 1, 26 * CS + 1, new THREE.Vector3(60 * CS + 1, 0, 27 * CS + 0.8), new THREE.Vector3(61 * CS + 0.4, 1.3, 27 * CS + 0.03), 0);
 DOORS.foto2.it.reader = DOORS.foto.it.reader = true;
+makeDoor('capela', [[48, 15]], CS, 0.25, 48 * CS + 1, 15 * CS + 1, new THREE.Vector3(48 * CS + 1, 0, 14 * CS + 1.2));
+makeDoor('alcapao', [[53, 33]], CS, 0.25, 53 * CS + 1, 33 * CS + 1, new THREE.Vector3(53 * CS + 1, 0, 32 * CS + 0.8));
+makeDoor('grade', [[15, 33]], CS, 0.25, 15 * CS + 1, 33 * CS + 1, new THREE.Vector3(15 * CS + 1, 0, 32 * CS + 0.8));
+makeDoor('patio', [[30, 44]], CS, 0.25, 30 * CS + 1, 44 * CS + 1, new THREE.Vector3(30 * CS + 1, 0, 43 * CS + 1.2));
+{ // portão do pátio: grade de ferro (dá para ver a Celeste do outro lado)
+  const d = DOORS.patio; d.mesh.material = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+  for (let i = 0; i < 9; i++) { const b = cyl(0.025, 0.025, CFG.wallH, M.rust, -0.9 + i * 0.225, 0, 0, d.mesh, 6); b.castShadow = true; }
+  for (const y of [-1.2, 0, 1.2]) box(2, 0.06, 0.06, M.rust, 0, y, 0, d.mesh);
+  // grade do subsolo também é vazada
+  const gd = DOORS.grade; gd.mesh.material = d.mesh.material;
+  for (let i = 0; i < 9; i++) cyl(0.02, 0.02, CFG.wallH, M.rust, -0.9 + i * 0.225, 0, 0, gd.mesh, 6);
+}
+// portão do pátio para a rua (só abre ao amanhecer)
+const STREET = { type: 'street', pos: new THREE.Vector3(30 * CS + 1, 0, 48 * CS + 1.2), active: false }; interact.push(STREET);
+// o sol nascendo sobre o pátio (luz com sombra, só acende no final)
+const SUN = new THREE.SpotLight(0xffc38a, 0, 40, 0.75, 0.6, 1.2); SUN.position.set(30.5 * CS, 18, 52 * CS); SUN.target.position.set(30.5 * CS, 0, 46.5 * CS); scene.add(SUN); scene.add(SUN.target);
 function openDoor(d, instant) {
   if (!d || d.opening) return; d.opening = true; if (d.it) d.it.active = false;
   if (d.lamp) d.lamp.material.color.set(0x30ff60);
@@ -899,10 +1011,10 @@ FOTO.light.position.set(60 * CS, 2.6, 20.5 * CS); scene.add(FOTO.light);
    LUZES DO MUNDO (+ grade de luz para a IA)
    --------------------------------------------------------------- */
 const LIGHTS = [];
+const LIGHT_POOL = []; for (let i = 0; i < 10; i++) { const p = new THREE.PointLight(0xffffff, 0, 10, 2); scene.add(p); LIGHT_POOL.push(p); }
 function addLight(cx, cz, color, intensity, range, strength, sector, on, kind = 'fluo') {
   const pos = new THREE.Vector3(cx * CS, CFG.wallH - 0.25, cz * CS);
-  const L = new THREE.PointLight(color, on ? intensity : 0, range, 2);
-  L.position.copy(pos); scene.add(L);
+  const L = { intensity: on ? intensity : 0, color: new THREE.Color(color) };   // luz virtual (o pool desenha as mais próximas)
   let fixture;
   if (kind === 'fluo') {
     fixture = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.06, 0.2), new THREE.MeshStandardMaterial({ color: 0x222, emissive: new THREE.Color(color), emissiveIntensity: on ? 1.6 : 0.02 }));
@@ -932,6 +1044,10 @@ dawn.fixture.visible = false;
 addLight(48.5, 23.6, 0xff9a40, 9, 9, 0.55, 'capela', false, 'red');
 addLight(51.5, 31, 0xff6a20, 7, 10, 0.45, 'crematorio', false, 'red');
 addLight(61.5, 3.5, 0xffd9a0, 12, 8, 0.7, 'diretoria', false, 'red');
+// galerias (capítulo IV): emergência vermelha esparsa, vela no quarto da Celeste, lua no pátio
+[[20, 35.5], [38, 35.5], [55, 35.5], [28, 43.5], [46, 43.5]].forEach(([x, z]) => addLight(x, z, 0xff2a18, 4, 7, 0.3, 'galerias', false, 'red'));
+addLight(59, 40, 0xffa050, 8, 8, 0.5, 'quarto', false, 'red');
+const moon = addLight(30.5, 47, 0x6d84a8, 6, 14, 0.35, 'patio', false, 'red'); moon.fixture.visible = false; moon.pos.y = 7;
 
 const lightGrid = new Float32Array(W * H);
 let blackout = 0;
@@ -1747,13 +1863,13 @@ const AI = {
   noise: null, sinceNear: 0, awayUntil: 0, lastScream: 0, recoilTo: null, ignition: false,
   lightExp: 0, recoilDur: 6, fledLight: false, fleeMsgT: -99,
   // foge correndo para longe do jogador (luz da lanterna ou queimadura do foco)
-  flee(dur, fromLight) { if (this.state === 'dying' || this.state === 'dead') return; this.recoilDur = dur; this.fledLight = !!fromLight; this.lightExp = 0; if (this.checkSpot) closeSpot(this.checkSpot); this.checkSpot = null; this.stalking = false; this.setState('recoil'); },
+  flee(dur, fromLight) { if (this.state === 'dying' || this.state === 'dead' || this.state === 'sunwalk') return; this.recoilDur = dur; this.fledLight = !!fromLight; this.lightExp = 0; if (this.checkSpot) closeSpot(this.checkSpot); this.checkSpot = null; this.stalking = false; this.setState('recoil'); },
 
-  setState(s) { if (this.state === s || this.state === 'dying' || this.state === 'dead') return; this.state = s; this.t = 0; this.path = []; this.pause = 0; if (s === 'chase') { if (performance.now() / 1000 - this.lastScream > 6) { SFX.scream(1.1); this.lastScream = performance.now() / 1000; } } },
+  setState(s) { if (this.state === s || this.state === 'dying' || this.state === 'dead' || this.state === 'sunwalk') return; this.state = s; this.t = 0; this.path = []; this.pause = 0; if (s === 'chase') { if (performance.now() / 1000 - this.lastScream > 6) { SFX.scream(1.1); this.lastScream = performance.now() / 1000; } } },
   levelMul() { return CFG.creature.levelSpeed[this.level]; },
   goTo(v, avoid = true) { const [sx, sz] = cellOf(this.pos), [tx, tz] = cellOf(v); this.path = astar(sx, sz, tx, tz, avoid) || []; this.target = v.clone(); },
   hear(pos, radius, prio) {
-    if (this.grace > 0 || this.state === 'recoil' || this.state === 'dying' || this.state === 'dead' || P.dead) return;
+    if (this.grace > 0 || this.state === 'recoil' || this.state === 'dying' || this.state === 'dead' || this.state === 'sunwalk' || P.dead) return;
     const d = Math.hypot(pos.x - this.pos.x, pos.z - this.pos.z);
     const walls = wallsBetween(this.pos.x, this.pos.z, pos.x, pos.z, 4);
     const eff = radius * CFG.creature.levelHear[this.level] * Math.pow(0.6, walls);
@@ -1787,7 +1903,7 @@ const AI = {
   },
 
   update(dt) {
-    if (this.state === 'dying' || this.state === 'dead') { this.speed = 0; this.canSee = false; return; }
+    if (this.state === 'dying' || this.state === 'dead' || this.state === 'sunwalk') { if (this.state !== 'sunwalk') this.speed = 0; this.canSee = false; return; }
     if (this.grace > 0) this.grace -= dt;
     this.t += dt; this.lastSeenT += dt;
     this.perceive(dt);
@@ -1914,7 +2030,7 @@ const AI = {
     }
   }
 };
-const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _c1 = new THREE.Color();
 function angLerp(a, b, t) { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * t; }
 function randomCellNear(v, r) {
   for (let k = 0; k < 30; k++) { const x = Math.floor((v.x + rand(-r, r)) / CS), z = Math.floor((v.z + rand(-r, r)) / CS); if (inb(x, z) && !blocked[idx(x, z)] && regionAt(x, z) !== 'rua') return center(x, z); }
@@ -1963,7 +2079,7 @@ function animateCreature(dt, time) {
   a.burn = lerp(a.burn, burning ? 1 : 0, dt * 8);
   const spd = AI.speed; AI.phase += dt * (chase ? spd * 2.1 : spd * 3.2);
   const ph = AI.phase, sw = Math.min(1, spd / 1.5);
-  C.root.position.set(AI.pos.x, 0, AI.pos.z); C.root.rotation.y = AI.yaw;
+  C.root.position.set(AI.pos.x, AI.state === 'dying' && AI.dyingKind === 'peace' ? C.root.position.y : 0, AI.pos.z); C.root.rotation.y = AI.yaw;
   C.hips.position.y = a.hipY + Math.abs(Math.sin(ph)) * 0.05 * sw;
   C.spine.rotation.x = a.lean + Math.sin(ph * 2) * 0.04 * sw;
   C.spine.rotation.z = Math.sin(ph) * 0.06 * sw;
@@ -2004,6 +2120,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyF' && !P.hidden) { fl.on = !fl.on; SFX.click(); TORCH.clickT = 0.16; }
   if (e.code === 'KeyC' || e.code === 'ControlLeft') P.crouch = !P.crouch;
   if (e.code === 'KeyV') msg(cycleShake(), 1.5);
+  if (e.code === 'KeyT' && TP.n) stopTape(false);
   if (e.code === 'KeyE') { eHeld = true; pressInteract(); }
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'KeyE') { eHeld = false; installT = 0; } if (e.code === 'Tab') showMap(false); });
@@ -2078,7 +2195,7 @@ async function decodeAssets() {
   if (!A.ctx || A.assetsLoaded) return; A.assetsLoaded = true;
   const dec = async b64 => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return await A.ctx.decodeAudioData(u.buffer); };
   const ASSETS = window.FORMOL_AUDIO || {};
-  A.narr = []; A.steps = {}; A.radio = [];
+  A.narr = []; A.steps = {}; A.radio = []; A.tapes = {};
   const keys = Object.keys(ASSETS), bufs = await Promise.all(keys.map(k => dec(ASSETS[k]).catch(e => { console.warn('audio', k, e); return null; })));
   for (let ki = 0; ki < keys.length; ki++) {
     const k = keys[ki];
@@ -2086,6 +2203,7 @@ async function decodeAssets() {
       const buf = bufs[ki]; if (!buf) continue;
       const m = k.match(/^narr(\d+)$/); if (m) { A.narr[+m[1]] = buf; continue; }
       const rd = k.match(/^radio(\d+)$/); if (rd) { A.radio[+rd[1]] = buf; continue; }
+      const fm = k.match(/^fita(\d+)_(\d+)$/); if (fm) { (A.tapes[+fm[1]] = A.tapes[+fm[1]] || [])[+fm[2]] = buf; continue; }
       const st = k.match(/^step_(\w+?)_\d+$/); if (st) { (A.steps[st[1]] = A.steps[st[1]] || []).push(buf); continue; }
       A[k] = buf;
     } catch (e) { console.warn('audio', k, e); }
@@ -2135,24 +2253,30 @@ function bindList(ul, onAct) {
   };
 }
 let openPanel = null;
-function showPanel(id) { ['p_opts', 'p_ctrls', 'p_credits'].forEach(p => $(p).style.display = 'none'); openPanel = id; $('menu').style.zIndex = MODE === 'game' ? 27 : ''; if (id) { $(id).style.display = 'block'; if (MODE === 'game') { $('menu').style.display = 'block'; $('menu').querySelector('.side').style.visibility = 'hidden'; $('menu').querySelector('.foot').style.visibility = 'hidden'; $('menu').style.background = 'none'; } } else if (MODE === 'game') $('menu').style.display = 'none'; }
+function showPanel(id) { ['p_opts', 'p_ctrls', 'p_credits', 'p_chaps', 'p_tapes'].forEach(p => $(p).style.display = 'none'); openPanel = id; $('menu').style.zIndex = MODE === 'game' ? 27 : ''; if (id) { $(id).style.display = 'block'; if (MODE === 'game') { $('menu').style.display = 'block'; $('menu').querySelector('.side').style.visibility = 'hidden'; $('menu').querySelector('.foot').style.visibility = 'hidden'; $('menu').style.background = 'none'; } } else if (MODE === 'game') $('menu').style.display = 'none'; }
 const mainNav = bindList($('mainItems'), act => {
   if (act === 'new') newGame();
   if (act === 'cont') continueGame();
   if (act === 'opts') showPanel('p_opts');
   if (act === 'ctrls') showPanel('p_ctrls');
   if (act === 'credits') showPanel('p_credits');
+  if (act === 'chaps') { refreshChapters(); showPanel('p_chaps'); }
+});
+document.querySelectorAll('#chapItems li').forEach(li => {
+  li.addEventListener('mouseenter', () => { if (!li.classList.contains('dis')) uiSfx('hover'); });
+  li.addEventListener('click', () => { if (li.classList.contains('dis')) return; uiSfx('start'); playChapter(+li.dataset.ch); });
 });
 const pauseNav = bindList($('pauseItems'), act => {
   if (act === 'resume') resumeGame();
   if (act === 'opts') showPanel('p_opts');
   if (act === 'ctrls') showPanel('p_ctrls');
-  if (act === 'quit') { if (PROG.ch > 1 || P.installedIds.length) saveProgress(); location.reload(); }
+  if (act === 'tapes') openTapeList();
+  if (act === 'quit') { stopTape(false); if (PROG.ch > 1 || P.installedIds.length) saveProgress(); location.reload(); }
 });
 function refreshContinue() {
   const sv = loadJ('formol_save'), li = $('contItem');
   const ch = sv ? (sv.ch || 1) : 1;
-  if (sv && (ch > 1 || (sv.ids && sv.ids.length))) { li.classList.remove('dis'); $('contInfo').textContent = ch === 1 ? `CAPÍTULO I · ${sv.ids.length}/5 FUSÍVEIS` : ch === 2 ? `CAPÍTULO II · ${(sv.tapes || []).length}/3 FITAS` : `CAPÍTULO III · ${(sv.lamps || []).length}/3 LÂMPADAS`; }
+  if (sv && (ch > 1 || (sv.ids && sv.ids.length))) { li.classList.remove('dis'); $('contInfo').textContent = ch === 1 ? `CAPÍTULO I · ${sv.ids.length}/5 FUSÍVEIS` : ch === 2 ? `CAPÍTULO II · NOITE LONGA` : ch === 3 ? `CAPÍTULO III · ${(sv.lamps || []).length}/3 LÂMPADAS` : 'CAPÍTULO IV · AMANHECER'; }
   else { li.classList.add('dis'); $('contInfo').textContent = 'NENHUM PROGRESSO SALVO'; }
 }
 function enterMenu() {
@@ -2186,17 +2310,24 @@ function applyProgress(sv) {
     const sk = panel.sockets[P.installed - 1].material; sk.color.set(0x0a3a12); sk.emissive.set(0x40ff70); sk.emissiveIntensity = 2.2; panel.fuses[P.installed - 1].visible = true;
     LIGHTS.filter(l => l.sector === SECTOR_ORDER[P.installed - 1]).forEach(l => { l.on = true; });
   }
-  PROG.ch = sv.ch || 1; PROG.tapes = sv.tapes || []; PROG.office = !!sv.office; PROG.card = !!sv.card; PROG.fotoOpen = !!sv.fotoOpen; PROG.lamps = sv.lamps || []; PROG.killed = !!sv.killed; PROG.metCeleste = PROG.celesteQueued = !!sv.met;
+  if (!sv.v) {   // save da versão anterior (3 capítulos): converte
+    sv.tapes = (sv.tapes || []).map(t => t + 2); if (sv.killed) { sv.ch = 4; sv.burned = true; } if (sv.card && (sv.ch || 1) < 3) sv.ch = 3;
+  }
+  PROG.ch = sv.ch || 1; PROG.tapes = sv.tapes || []; PROG.office = !!sv.office; PROG.card = !!sv.card; PROG.fotoOpen = !!sv.fotoOpen; PROG.lamps = sv.lamps || [];
+  PROG.burned = !!sv.burned; PROG.visitedGal = !!sv.visitedGal; PROG.crank = !!sv.crank; PROG.gateOpen = !!sv.gateOpen; PROG.metCeleste = PROG.celesteQueued = !!sv.met;
   if (PROG.card && PROG.ch < 3) PROG.ch = 3;
-  if (PROG.ch >= 2) { panel.setLever(true); openDoor(DOORS.fogo, true); eastLights(true); exitDoor.sign.material.emissive.set(0x5a0a08); exitDoor.sign.material.emissiveIntensity = 1; }
+  if (PROG.ch >= 2) { panel.setLever(true); openDoor(DOORS.fogo, true); exitDoor.sign.material.emissive.set(0x5a0a08); exitDoor.sign.material.emissiveIntensity = 1; }
   TAPES.forEach(t => { if (PROG.tapes.includes(t.n)) { t.active = false; t.mesh.visible = false; } });
   if (PROG.office) openDoor(DOORS.office, true);
   if (PROG.card) { CARD.active = false; CARD.mesh.visible = false; }
-  if (PROG.ch >= 3) LAMPS.forEach(l => { const inst = PROG.lamps.includes(l.n); l.active = !inst; l.mesh.visible = !inst; });
+  if (PROG.ch >= 3) { openDoor(DOORS.capela, true); LAMPS.forEach(l => { const inst = PROG.lamps.includes(l.n) || PROG.ch >= 4; l.active = !inst; l.mesh.visible = !inst; }); }
   PROG.lamps.forEach((n, i) => CONSOLE.show(i));
   lastLampToChapel(true);
   if (PROG.fotoOpen) { openDoor(DOORS.foto, true); openDoor(DOORS.foto2, true); }
-  if (PROG.killed) { AI.state = 'dead'; C.root.visible = false; AI.pos.set(-60, 0, -60); openExit(true); }
+  if (PROG.ch >= 4) { openDoor(DOORS.alcapao, true); openDoor(DOORS.grade, true); }
+  if (PROG.crank) { CRANK.active = false; CRANK.mesh.visible = false; }
+  if (PROG.gateOpen) { openDoor(DOORS.patio, true); moon.on = true; }
+  applyLights(); unlockChapter(PROG.ch);
   computeLightGrid(); AI.level = levelFor();
   checkpoint = { installed: P.installed, battery: 100 };
 }
@@ -2296,11 +2427,12 @@ function finishIntro() {
 }
 function startGame() {
   MODE = 'game'; MUSIC.on = false; document.body.classList.add('ingame');
-  if (!PROG.killed) { AI.pos.copy(PROG.ch >= 2 ? center(38, 3) : center(9, 30)); AI.state = 'patrol'; AI.path = []; AI.speed = 0; AI.burnAcc = 0; AI.grace = PROG.ch >= 2 ? 12 : 25; }
+  AI.pos.copy(PROG.ch >= 4 ? center(20, 35) : PROG.ch >= 2 ? center(38, 3) : center(9, 30)); AI.state = 'patrol'; AI.path = []; AI.speed = 0; AI.burnAcc = 0; AI.grace = PROG.ch >= 2 ? 12 : 25; C.root.visible = true;
+  AI.level = levelFor(); if (PROG.ch === 4 && PROG.gateOpen) { DAWN.phase = 'run'; DAWN.t = 0; AI.ignition = true; }
   P.pos.copy(spawnPoint()); P.yaw = PROG.ch >= 2 ? -Math.PI / 2 : 0; P.pitch = 0; fl.on = true;
   playing = true; stats.t0 = performance.now(); P.region = '';
   if (document.pointerLockElement !== canvas) { lock(); if (!noLock) msg('Clique na tela para controlar a câmera.', 4); }
-  showChapter(PROG.ch, () => { if (PROG.ch === 1) msg(P.installed ? `Checkpoint carregado: ${P.installed}/5 fusíveis no painel.` : 'A porta está travada. O painel precisa de 5 fusíveis.', 5); else if (PROG.killed) msg('A porta principal está aberta. Saia.', 4); });
+  showChapter(PROG.ch, () => { if (PROG.ch === 1) msg(P.installed ? `Checkpoint carregado: ${P.installed}/5 fusíveis no painel.` : 'A porta está travada. O painel precisa de 5 fusíveis.', 5); else if (PROG.ch === 4) msg(PROG.gateOpen ? 'O portão do pátio está aberto. Sobreviva até o amanhecer.' : 'A rede caiu. Só restam as luzes de emergência.', 4); });
 }
 function newGame() { saveJ('formol_save', null); uiSfx('start'); lock(); runIntro(); }
 function continueGame() { const sv = loadJ('formol_save'); if (!sv) return; applyProgress(sv); uiSfx('start'); lock(); $('menu').style.display = 'none'; $('fade').style.opacity = 1; setTimeout(() => { startGame(); $('fade').style.opacity = 0; }, 900); }
@@ -2335,13 +2467,19 @@ function promptFor(it) {
     case 'tape': return '[E] pegar fita cassete';
     case 'lamp': return '[E] pegar lâmpada de arco';
     case 'card': return '[E] revistar o corpo do Dr. Varela';
-    case 'exit': return 'Porta blindada — TRAVA DE SEGURANÇA ATIVA';
+    case 'crank': return '[E] pegar a manivela do portão';
+    case 'street': return '[E] sair para a rua';
+    case 'exit': return PROG.ch >= 4 ? 'Porta blindada — travada de vez pela sobrecarga' : 'Porta blindada — TRAVA DE SEGURANÇA ATIVA';
     case 'door':
       if (it.door.key === 'fogo') return 'Porta corta-fogo — trava eletromagnética sem energia';
+      if (it.door.key === 'capela') return 'Porta da capela — trancada por dentro';
+      if (it.door.key === 'alcapao') return 'Alçapão da escada de serviço — trancado com corrente';
+      if (it.door.key === 'grade') return 'Grade enferrujada — emperrada';
+      if (it.door.key === 'patio') return PROG.crank ? '[segure E] girar a manivela do portão' : 'Portão do Pátio Interno — falta a manivela';
       if (it.door.key === 'office') return PROG.tapes.length >= 3 ? '[E] digitar o código 1-2-0-3' : `Teclado numérico — você não sabe o código (${PROG.tapes.length}/3 fitas)`;
       return PROG.card ? '[E] passar o cartão da diretoria' : 'Leitor de cartão — ACESSO RESTRITO À DIRETORIA';
     case 'console':
-      if (PROG.killed) return 'Console queimado. Cheiro de formol e carne.';
+      if (PROG.burned || PROG.ch > 3) return 'Console queimado. Cheiro de formol e carne.';
       if (PROG.ch < 3) return 'Console de fototerapia — sem lâmpadas';
       if (PROG.lamps.length < 3) return P.lamps.length ? `[segure E] encaixar lâmpada de arco (${P.lamps.length} na mão)` : `Console de fototerapia — ${PROG.lamps.length}/3 lâmpadas`;
       return FOTO.cool > 0 ? `Capacitores recarregando… ${Math.ceil(FOTO.cool)} s` : '[E] ACIONAR DESCARGA — 10.000 LUX';
@@ -2362,9 +2500,11 @@ function pressInteract() {
   if (it.type === 'tape') takeTape(it);
   if (it.type === 'lamp') { it.active = false; it.mesh.visible = false; P.lamps.push(it); SFX.pickup(); emitNoise(it.pos, CFG.noise.pickup, 2); msg('Lâmpada de arco — leve ao console da Sala de Fototerapia.', 3); updateCarried(); setTimeout(() => lastLampToChapel(false), 3500); }
   if (it.type === 'card') takeCard();
+  if (it.type === 'crank') takeCrank(it);
+  if (it.type === 'street') { stopTape(false); win(); }
   if (it.type === 'exit') tone({ f: 160, type: 'square', peak: 0.06, d: 0.3 });
-  if (it.type === 'door') { if (it.door.key === 'office') useKeypad(); else if (it.door.key !== 'fogo') useReader(); }
-  if (it.type === 'console' && PROG.ch >= 3 && !PROG.killed && PROG.lamps.length >= 3 && FOTO.cool <= 0) discharge();
+  if (it.type === 'door') { if (it.door.key === 'office') useKeypad(); else if (it.door.key === 'foto' || it.door.key === 'foto2') useReader(); else if (it.door.key === 'patio' && !PROG.crank) msg('O mecanismo do portão precisa de uma manivela. A Celeste falou do quarto dela.', 3); else if (it.door.key !== 'patio') tone({ f: 160, type: 'square', peak: 0.06, d: 0.25 }); }
+  if (it.type === 'console' && PROG.ch === 3 && !PROG.burned && PROG.lamps.length >= 3 && FOTO.cool <= 0) discharge();
   if (it.type === 'hide') hide(it.spot);
   if (it.type === 'panel' && P.installed >= 5 && !AI.ignition && PROG.ch === 1) startIgnition();
 }
@@ -2421,49 +2561,144 @@ function respawn() {
   P.carry.forEach(f => { f.active = true; f.mesh.visible = true; }); P.carry = [];
   P.lamps.forEach(f => { f.active = true; f.mesh.visible = true; }); P.lamps = []; updateCarried();
   const spawns = [center(9, 30), center(2, 6), center(40, 24), center(38, 3)];
-  if (PROG.ch >= 2) spawns.push(center(53, 2), center(56, 30), center(63, 10), center(49, 20));
+  if (PROG.ch >= 2 && PROG.ch < 4) spawns.push(center(53, 2), center(56, 30), center(63, 10), center(49, 20));
+  if (PROG.ch >= 4) spawns.length = 0, spawns.push(center(20, 35), center(12, 43), center(46, 43), center(36, 40), center(28, 36));
   let far = spawns[0], fd = 0; for (const s of spawns) { const d = s.distanceTo(P.pos); if (d > fd) { fd = d; far = s; } }
   AI.pos.copy(far); AI.state = 'patrol'; AI.path = []; AI.suspicion = 0; AI.grace = 8; AI.burnAcc = 0; AI.checkSpot = null; AI.seenEnter = null; AI.stalking = false;
-  AI.ignition = false; AI.level = levelFor(); AI.lightExp = 0;
+  AI.ignition = false; AI.level = levelFor(); AI.lightExp = 0; C.root.visible = true; C.root.rotation.x = 0;
+  if (PROG.ch === 4 && PROG.gateOpen && DAWN.phase !== 'sun') { DAWN.phase = 'run'; DAWN.t = 0; AI.ignition = true; AI.grace = 6; }
   panel.setLever(PROG.ch >= 2); A.sirenG && A.sirenG.gain.setTargetAtTime(0, A.ctx.currentTime, 0.2);
   $('fade').style.opacity = 0; paused = false;
   hideSpots.forEach(closeSpot);
-  if (!PROG.killed) {
+  {
     exitDoor.opening = false; exitDoor.open = 0; exitDoor.mesh.position.y = CFG.wallH / 2; grid[idx(21, 26)] = 'X'; grid[idx(22, 26)] = 'X'; rebuildBlocked();
     dawn.on = false; dawn.L.intensity = 0; exitDoor.sign.material.emissiveIntensity = PROG.ch >= 2 ? 1 : 0.3; exitDoor.sign.material.emissive.set(PROG.ch >= 2 ? 0x5a0a08 : 0x0a2a14); exitDoor.it.active = true;
   }
   computeLightGrid();
   if (PROG.ch === 1) msg(P.installed ? `Checkpoint: ${P.installed}/5 fusíveis instalados. Os que você carregava voltaram ao lugar.` : 'Os fusíveis que você carregava voltaram ao lugar.', 4);
   else if (PROG.ch === 2) msg(`Checkpoint — Pavilhão Leste. Fitas: ${PROG.tapes.length}/3.`, 4);
-  else msg(`Checkpoint — Pavilhão Leste. Lâmpadas no console: ${PROG.lamps.length}/3.` + (lostLamps ? ' As que você carregava voltaram ao lugar.' : ''), 4);
+  else if (PROG.ch === 3) msg(`Checkpoint — Pavilhão Leste. Lâmpadas no console: ${PROG.lamps.length}/3.` + (lostLamps ? ' As que você carregava voltaram ao lugar.' : ''), 4);
+  else msg(PROG.gateOpen ? 'Checkpoint — galerias. O sol ainda não nasceu: aguente firme.' : 'Checkpoint — galerias.', 4);
 }
 function win() {
   P.won = true; document.exitPointerLock(); saveJ('formol_save', null);
   const t = (performance.now() - stats.t0) / 1000;
-  $('win_sub').textContent = `TEMPO ${Math.floor(t / 60)}m${String(Math.floor(t % 60)).padStart(2, '0')}s · MORTES ${stats.deaths} · QUEIMADURAS ${stats.burns}`;
+  $('win_sub').textContent = `TEMPO ${Math.floor(t / 60)}m${String(Math.floor(t % 60)).padStart(2, '0')}s · MORTES ${stats.deaths} · FITAS ${PROG.tapes.length}/${Object.keys(TAPEDATA).length}`; saveJ('formol_unlocked', 4);
   $('win').style.display = 'flex'; SFX.birds(); setInterval(SFX.birds, 2500);
   if (A.ctx) { A.sirenG.gain.value = 0; A.tension.gain.value = 0; A.chase.gain.value = 0; A.growlG.gain.value = 0; A.ambG.gain.value = 0.05; }
 }
 
 
 /* ---------------------------------------------------------------
-   CAPÍTULOS, OBJETIVOS, DOCUMENTOS
-   I · APAGÃO — 5 fusíveis e a ignição do QG-1
-   II · NOITE LONGA — fitas do Dr. Varela, código do escritório, cartão da diretoria
-   III · FORMOL — 3 lâmpadas de arco, atraí-lo para a fototerapia, descarga, fuga
+   FITAS CASSETE — tocadas no walkman do Elias (vozes geradas na ElevenLabs)
+   V = Dr. Antônio Varela · T = Tomás Aurélio Reis · C = Celeste · O = vigia Osmar
    --------------------------------------------------------------- */
-const PROG = { ch: 1, tapes: [], office: false, card: false, fotoOpen: false, lamps: [], killed: false };
+const VOICES = { V: ['DR. VARELA', 'JBFqnCBsd6RMkjVDRZzb'], T: ['TOMÁS', 'TX3LPaxmHKxFdv7VOQHJ'], C: ['CELESTE', 'XrExE9yKIg1WjnnlVkGX'], O: ['OSMAR', 'pqHfZKP75CvOlQylNhV4'] };
+const TAPEDATA = {
+  1: { ch: 1, title: 'FITA 1 — GRAVADOR DO VIGIA · 03/11/1987, 01h40', lines: [
+    ['O', 'Uma e quarenta. O rádio está mudo de novo. Vou deixar isso gravado, caso alguém pergunte depois.'],
+    ['O', 'Tem alguém andando no forro do necrotério. Eu sei que é ele. Faz quatro anos que eu finjo que não sei.'],
+    ['O', 'A dona Celeste falou pelo alto-falante agora há pouco. Pediu pra eu não apagar as luzes. Eu não apaguei. Alguém arrancou os fusíveis do quadro.'],
+    ['O', 'Vou descer pra pegar o do gerador. Se eu não voltar... a porta da frente só abre com o quadro ligado.']] },
+  2: { ch: 1, title: 'FITA 2 — ADMISSÃO DO PACIENTE 14 · 19/04/1982', lines: [
+    ['V', 'Admissão. Paciente catorze, Tomás Aurélio Reis. Diga para o gravador por que você está aqui, Tomás.'],
+    ['T', 'Meu pai diz que eu tenho medo da luz.'],
+    ['V', 'E você tem?'],
+    ['T', 'Não é medo. Dói. Dói por dentro dos olhos, como se a luz entrasse e não saísse mais.'],
+    ['V', 'Seu pai disse que você grita ao amanhecer.'],
+    ['T', 'Meu pai não sabe de nada. A minha mãe sabia. Ela fechava as cortinas pra mim.'],
+    ['V', 'Aqui nós vamos fechar todas, Tomás. Para sempre, se for preciso.']] },
+  3: { ch: 2, title: 'FITA 3 — NOITE LONGA, SESSÃO 001 · 02/06/1982', lines: [
+    ['V', 'Programa Noite Longa, sessão um. Paciente catorze. Câmara três selada. Nenhum fóton. Alimentação pela gaveta.'],
+    ['T', 'Doutor? Doutor, acende a luz. Só um pouquinho.'],
+    ['V', 'Não, Tomás. A partir de hoje, a noite é a sua casa.'],
+    ['T', 'Por quanto tempo?'],
+    ['V', 'O tempo que a sua mente precisar para esquecer o dia.']] },
+  4: { ch: 2, title: 'FITA 4 — NOITE LONGA, SESSÃO 094 · 11/03/1983', lines: [
+    ['V', 'Sessão noventa e quatro. Nove meses. As pupilas não contraem mais. A pele perdeu todo o pigmento.'],
+    ['V', 'Ele anda no escuro absoluto sem tocar nas paredes. Não fala mais comigo. Ele sorri.'],
+    ['C', 'Doutor, ele perguntou de novo que horas são lá fora.'],
+    ['V', 'E o que a senhora respondeu, Celeste?'],
+    ['C', 'Que ainda é noite.'],
+    ['V', 'Ótimo. Amanhã, dia doze, faremos a reexposição. Dez mil lux. Quero ver o que a luz faz com quem esqueceu dela.']] },
+  5: { ch: 2, title: 'FITA 5 — SEM DATA', lines: [
+    ['V', 'Ele queimou. Gritou por quatro minutos inteiros, e eu não desliguei. Eu precisava ver.'],
+    ['V', 'Injetei o formol eu mesmo, para ninguém ver as queimaduras. Gaveta sete. Três dias depois, a gaveta estava aberta. Por dentro.'],
+    ['V', 'Ele me visita. Não me mata. Acho que ainda pensa que eu sou o médico dele.'],
+    ['V', 'Tranquei o escritório. O código é o dia e o mês em que eu o matei. Doze. Zero três.']] },
+  6: { ch: 3, title: 'FITA 6 — REEXPOSIÇÃO · 12/03/1983', lines: [
+    ['V', 'Doze de março. Reexposição. Lâmpadas de arco em potência máxima. Ligando.'],
+    ['T', 'Mãe! Mãe, apaga! Apaga, por favor!'],
+    ['C', 'Doutor, chega! Ele está queimando!'],
+    ['V', 'Ainda não, Celeste. Anote: dois minutos.'],
+    ['T', 'Mãe... por que você não apaga?'],
+    ['C', 'Desliga! Desliga essa máquina!']] },
+  7: { ch: 4, title: 'FITA 7 — PARA QUEM ENCONTRAR', lines: [
+    ['C', 'Meu nome é Celeste Amaral Reis. Eu não era só a enfermeira do Tomás.'],
+    ['C', 'Eu sou a mãe dele.'],
+    ['C', 'O pai dele assinou a internação. Eu aceitei trabalhar para o doutor Varela, porque era o único jeito de ficar perto do meu filho.'],
+    ['C', 'Durante nove meses eu levei a comida dele pela gaveta. E todo dia ele perguntava que horas eram lá fora. E todo dia eu mentia: ainda é noite, filho.'],
+    ['C', 'Ele nunca mais viu o sol por minha causa. Hoje eu vou levar ele até o pátio. Só uma vez. Eu quero que ele veja o dia.'],
+    ['C', 'A manivela do portão está em cima da minha cama. Por favor.']] },
+  8: { ch: 4, title: 'FITA 8 — GRAVADOR ESCONDIDO · 1983', lines: [
+    ['T', 'Gravei escondido. O gravador do doutor ficou na câmara.'],
+    ['T', 'Hoje a mulher da comida cantou baixinho do outro lado da porta. Era a música que a minha mãe cantava quando fechava as cortinas.'],
+    ['T', 'Eu acho que é ela. Eu acho que ela veio me buscar.'],
+    ['T', 'Mãe, se for você... abre a porta. Eu não ligo pra luz. Eu só quero ir pra casa.']] }
+};
+const RADIO_NEW = [
+  [9, 'Eu destranquei a capela. O doutor escondeu as lâmpadas dele: no crematório, no altar... e no frio do necrotério, onde ele dormiu.'],
+  [10, 'Ele está vivo. Queimado, mas vivo. Fugiu pelo alçapão do crematório, para as galerias.'],
+  [11, 'A sobrecarga travou a porta da frente de vez. A única saída agora é o pátio interno, lá embaixo.'],
+  [12, 'Meu quarto fica no fim do túnel leste. Tem uma fita lá. Ouça, por favor. Ouça antes de me julgar.'],
+  [13, 'Agora o senhor sabe. Leve a manivela até o portão do pátio. Eu vou chamar ele.'],
+  [14, 'Faltam poucos minutos para o sol nascer. Corre, senhor eletricista. Ele está vindo.'],
+  [15, 'Olha, filho. Já é dia.'],
+  [16, 'Me perdoa. Eu menti pra você todos os dias.']
+];
+
+/* ---------------------------------------------------------------
+   CAPÍTULOS, OBJETIVOS, DOCUMENTOS, FITAS
+   I · APAGÃO — 5 fusíveis e a ignição do QG-1
+   II · NOITE LONGA — 3 sessões gravadas do Dr. Varela, código do escritório, cartão da diretoria
+   III · FORMOL — 3 lâmpadas de arco, atraí-lo para a fototerapia, descarga (ele sobrevive e foge)
+   IV · AMANHECER — galerias, a verdade da Celeste, o portão do pátio, sobreviver até o sol nascer
+   --------------------------------------------------------------- */
+const PROG = { v: 2, ch: 1, tapes: [], office: false, card: false, fotoOpen: false, lamps: [], burned: false, visitedGal: false, crank: false, gateOpen: false, dawn: false, metCeleste: false };
 const CHAPTERS = {
   1: ['CAPÍTULO I', 'APAGÃO', 'Instituto São Lázaro, 03:12.\nA energia caiu e a porta blindada travou atrás de você.\n\nEncontre os 5 fusíveis espalhados pelo prédio\ne religue o Quadro Geral na recepção.'],
   2: ['CAPÍTULO II', 'NOITE LONGA', 'A porta blindada não abriu. Mas, em algum lugar do prédio, uma trava cedeu.\n\nO Pavilhão Leste foi lacrado em 1984. Lá funcionava o Programa Noite Longa, do Dr. Antônio Varela.\n\nUma mulher fala com você pelos alto-falantes. Encontre as fitas do doutor e chegue ao escritório da diretoria.'],
-  3: ['CAPÍTULO III', 'FORMOL', 'Tomás Aurélio Reis, paciente 14, morreu em 12 de março de 1983.\nTrês dias depois, saiu da gaveta 7.\n\nA luz que o matou é a única coisa que pode pará-lo.']
+  3: ['CAPÍTULO III', 'FORMOL', 'Tomás Aurélio Reis, paciente 14, morreu em 12 de março de 1983.\nTrês dias depois, saiu da gaveta 7.\n\nA luz que o matou é a única coisa que pode pará-lo.'],
+  4: ['CAPÍTULO IV', 'AMANHECER', '05:41. A descarga não o matou.\nEle fugiu para as galerias sob o instituto, e a porta da frente travou de vez.\n\nA única saída é o Pátio Interno.\nO sol nasce às 06:04.']
 };
-function saveProgress() { saveJ('formol_save', { ch: PROG.ch, ids: P.installedIds, tapes: PROG.tapes, office: PROG.office, card: PROG.card, fotoOpen: PROG.fotoOpen, lamps: PROG.lamps, killed: PROG.killed, met: !!PROG.metCeleste }); }
+const CH_NAMES = ['', 'APAGÃO', 'NOITE LONGA', 'FORMOL', 'AMANHECER'];
+function saveProgress() {
+  saveJ('formol_save', { v: 2, ch: PROG.ch, ids: P.installedIds, tapes: PROG.tapes, office: PROG.office, card: PROG.card, fotoOpen: PROG.fotoOpen, lamps: PROG.lamps, burned: PROG.burned, visitedGal: PROG.visitedGal, crank: PROG.crank, gateOpen: PROG.gateOpen, met: !!PROG.metCeleste });
+  unlockChapter(PROG.ch);
+}
+function unlockChapter(n) { const u = loadJ('formol_unlocked') || 1; if (n > u) saveJ('formol_unlocked', n); }
 function setCheckpoint() { checkpoint = { installed: P.installed, battery: Math.max(fl.battery, 40) }; }
-function spawnPoint() { return PROG.ch >= 2 ? center(45, 13) : START.clone(); }
+function spawnPoint() { return PROG.ch >= 4 ? center(53, 35) : PROG.ch >= 2 ? center(45, 13) : START.clone(); }
 function levelFor() { return PROG.ch >= 3 ? 4 : PROG.ch === 2 ? 3 : P.installed >= 3 ? 3 : P.installed >= 1 ? 2 : 1; }
-function regionOpen(rg) { if (!EAST.has(rg)) return true; if (PROG.ch < 2) return false; if (rg === 'diretoria') return PROG.office; if (rg === 'fototerapia') return PROG.fotoOpen; return true; }
-function eastLights(on) { LIGHTS.filter(l => EAST.has(l.sector)).forEach(l => { l.on = on; l.flickT = on ? 1 : 0; }); computeLightGrid(); }
+function regionOpen(rg) {
+  const need = REGION_CH[rg] || 1; if (PROG.ch < need) return false;
+  if (rg === 'diretoria') return PROG.office; if (rg === 'fototerapia') return PROG.fotoOpen; if (rg === 'patio') return PROG.gateOpen;
+  return true;
+}
+const MAIN_SECTORS = new Set(['recepcao', ...SECTOR_ORDER]);
+function applyLights() {   // capítulo II em diante: quais luzes estão acesas
+  if (PROG.ch < 2) return;
+  for (const l of LIGHTS) {
+    const s = l.sector; let on = l.on;
+    if (MAIN_SECTORS.has(s)) on = PROG.ch < 4;                         // a sobrecarga do cap. III queimou o QG-1
+    else if (s === 'corredor' || s === 'subsolo' || s === 'leste') on = true;   // emergência a bateria
+    else if (s === 'diretoria' || s === 'gravacao') on = PROG.ch < 4;
+    else if (REGION_CH[s]) on = PROG.ch >= REGION_CH[s];
+    if (on !== l.on) { l.on = on; l.flickT = on ? 1 : 0; }
+  }
+  computeLightGrid();
+}
+function eastLights() { applyLights(); }
 
 // ---------- telas de documento e de capítulo (pausam o jogo) ----------
 const UI = { modal: null, t0: 0, onClose: null };
@@ -2477,7 +2712,7 @@ function showChapter(n, onClose) {
   $('chap_n').textContent = a; $('chap_t').textContent = b; $('chap_b').textContent = c;
   const el = $('chap'); el.style.display = 'flex'; requestAnimationFrame(() => { el.style.opacity = 1; });
   $('chap_k').style.opacity = 0; setTimeout(() => { if (UI.modal === 'chap') $('chap_k').style.opacity = 1; }, 2200);
-  boom();
+  boom(); unlockChapter(n);
 }
 function closeModal() {
   if (!UI.modal) return; if (performance.now() - UI.t0 < (UI.modal === 'chap' ? 2200 : 350)) return;
@@ -2487,25 +2722,89 @@ function closeModal() {
 }
 addEventListener('wheel', e => { if (UI.modal === 'doc') $('doc_p').scrollTop += e.deltaY; });
 
+// ---------- walkman: as fitas tocam enquanto você anda (legenda embaixo) ----------
+const TP = { n: 0, token: 0, src: null, hiss: null };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function tapeFx(buf) {
+  const ctx = A.ctx, src = ctx.createBufferSource(); src.buffer = buf;
+  const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.7; lg.gain.value = 0.004; lfo.connect(lg).connect(src.playbackRate); lfo.start(); src.onended = () => { try { lfo.stop(); } catch (e) { } };
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 140;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5200;
+  const g = ctx.createGain(); g.gain.value = 1.0;
+  src.connect(hp).connect(lp).connect(g).connect(A.master); src.start(); return src;
+}
+function hissOn(on) {
+  if (!A.ctx) return;
+  if (on && !TP.hiss) { const n = loopNoise(A.noise), f = A.ctx.createBiquadFilter(), g = A.ctx.createGain(); f.type = 'bandpass'; f.frequency.value = 4500; f.Q.value = 0.6; g.gain.value = 0.012; n.connect(f).connect(g).connect(A.master); TP.hiss = { n, g }; }
+  if (!on && TP.hiss) { try { TP.hiss.n.stop(); } catch (e) { } TP.hiss = null; }
+}
+function playTape(n) {
+  stopTape(false); const d = TAPEDATA[n]; if (!d) return; TP.n = n; const tok = ++TP.token;
+  $('walk').innerHTML = `▶ ${d.title}<small>T · parar</small>`; $('walk').style.opacity = 1;
+  tone({ f: 600, f2: 420, type: 'square', peak: 0.04, d: 0.08 }); hissOn(true);
+  (async () => {
+    await wait(700);
+    for (let i = 0; i < d.lines.length; i++) {
+      if (tok !== TP.token) return;
+      const [who, txt] = d.lines[i], buf = A.tapes && A.tapes[n] && A.tapes[n][i];
+      const dur = buf ? buf.duration : 1 + txt.length * 0.065;
+      $('tsub').innerHTML = `<b>${VOICES[who][0]}:</b> ${txt}`; $('tsub').style.opacity = 1;
+      if (buf && A.ctx) TP.src = tapeFx(buf);
+      await wait(dur * 1000 + 450);
+    }
+    if (tok === TP.token) stopTape(true);
+  })();
+}
+function stopTape(ended) {
+  const n = TP.n; TP.token++; if (TP.src) { try { TP.src.stop(); } catch (e) { } } TP.src = null; hissOn(false);
+  $('tsub').style.opacity = 0; $('walk').style.opacity = 0; TP.n = 0;
+  if (n) tone({ f: 420, f2: 300, type: 'square', peak: 0.03, d: 0.06 });
+  if (n && ended) onTapeEnd(n);
+}
+function onTapeEnd(n) {
+  if (MANDATORY_TAPES.includes(n) && PROG.ch === 2) { const k = MANDATORY_TAPES.filter(t => PROG.tapes.includes(t)).length; msg(k >= 3 ? 'Doze, zero três. O código do escritório: 1-2-0-3.' : `Sessões do Dr. Varela: ${k}/3`, 4); }
+  if (n === 7 && PROG.ch === 4) radio([13]);
+}
+function takeTape(it) {
+  it.active = false; it.mesh.visible = false; if (!PROG.tapes.includes(it.n)) PROG.tapes.push(it.n);
+  saveProgress(); setCheckpoint(); SFX.click(); msg('Você coloca a fita no walkman.', 2);
+  playTape(it.n);
+}
+function openTapeList() {
+  const ul = $('tapeList'); ul.innerHTML = '';
+  const got = Object.keys(TAPEDATA).map(Number).filter(n => PROG.tapes.includes(n));
+  if (!got.length) { ul.innerHTML = '<li class="dis">NENHUMA FITA ENCONTRADA</li>'; }
+  for (const n of got) { const li = document.createElement('li'); li.textContent = TAPEDATA[n].title; li.onclick = () => { uiSfx('sel'); showPanel(null); resumeGame(); playTape(n); }; ul.appendChild(li); }
+  $('tapeCount').textContent = `${got.length}/${Object.keys(TAPEDATA).length} FITAS`;
+  showPanel('p_tapes');
+}
+
 // ---------- objetivo no HUD ----------
 let objCache = '';
 function updateObjective() {
-  const head = ['', 'CAPÍTULO I · APAGÃO', 'CAPÍTULO II · NOITE LONGA', 'CAPÍTULO III · FORMOL'][PROG.ch];
+  const head = `CAPÍTULO ${['', 'I', 'II', 'III', 'IV'][PROG.ch]} · ${CH_NAMES[PROG.ch]}`;
   let t = '';
   if (PROG.ch === 1) {
     if (P.installed < 5) t = `Fusíveis no painel <b>${P.installed}</b>/5<br><small>${P.carry.length ? 'carregando: ' + P.carry.length : 'leve-os ao Quadro Geral, na recepção'}</small>`;
     else t = AI.ignition ? 'Sobreviva à ignição' : 'Puxe a alavanca de ignição no painel';
   } else if (PROG.ch === 2) {
-    if (PROG.tapes.length < 3) t = `Fitas do Dr. Varela <b>${PROG.tapes.length}</b>/3<br><small>Pavilhão Leste</small>`;
+    const k = MANDATORY_TAPES.filter(n => PROG.tapes.includes(n)).length;
+    if (k < 3) t = `Sessões gravadas do Dr. Varela <b>${k}</b>/3<br><small>câmaras de privação · sala de gravação</small>`;
     else if (!PROG.office) t = 'Abra o escritório da diretoria<br><small>código: 1-2-0-3</small>';
     else t = 'Reviste o escritório do Dr. Varela';
-  } else if (PROG.killed) t = 'Saia pela porta principal';
-  else {
+  } else if (PROG.ch === 3) {
     const L = [];
     if (!PROG.fotoOpen) L.push('Use o cartão na Sala de Fototerapia');
     if (PROG.lamps.length < 3) L.push(`Lâmpadas de arco no console <b>${PROG.lamps.length}</b>/3` + (P.lamps.length ? `<br><small>carregando: ${P.lamps.length}</small>` : '') + (PROG.lamps.length + P.lamps.length === 2 ? '<br><small>a última está na capela, ao lado do altar</small>' : ''));
-    else L.push(FOTO.cool > 0 ? 'Capacitores recarregando…' : 'Atraia-o para a Sala de Fototerapia<br><small>apague a lanterna · descarga no console quando ele entrar</small>');
+    else if (!PROG.burned) L.push(FOTO.cool > 0 ? 'Capacitores recarregando…' : 'Atraia-o para a Sala de Fototerapia<br><small>apague a lanterna · descarga no console quando ele entrar</small>');
     t = L.join('<br>');
+  } else {
+    if (DAWN.phase === 'sun') t = 'Saia pelo portão do pátio';
+    else if (DAWN.phase === 'run') { const left = Math.max(0, CFG.dawnTime - DAWN.t), m = 4 - Math.floor(left / (CFG.dawnTime / 4)); t = `Sobreviva até o amanhecer<br><b>06:0${Math.min(4, Math.max(0, m))}</b> <small>· ${Math.ceil(left)} s</small>`; }
+    else if (!PROG.visitedGal) t = 'Desça às galerias pelo alçapão do crematório';
+    else if (!PROG.tapes.includes(7)) t = 'Encontre o quarto da enfermeira Celeste<br><small>fim do túnel leste das galerias</small>';
+    else if (!PROG.crank) t = 'Pegue a manivela do portão<br><small>quarto da Celeste</small>';
+    else t = 'Abra o portão do Pátio Interno com a manivela<br><small>túnel sul das galerias</small>';
   }
   const html = `<div class="ch">${head}</div>${t}`;
   if (html !== objCache) { objCache = html; $('obj').innerHTML = html; }
@@ -2521,34 +2820,41 @@ const RADIO_LINES = [
   'O doutor está aí dentro, não está? Ele finalmente teve coragem. Eu nunca tive.',
   'Apague a lanterna. Ele sempre vem até quem está no escuro. Ele sempre veio até mim.',
   'Desculpa, Tomás… Desculpa.',
-  'A porta está aberta, senhor eletricista. Vá embora. E não olhe para trás.'
+  'A porta está aberta, senhor eletricista. Vá embora. E não olhe para trás.',
+  ...RADIO_NEW.map(r => r[1])
 ];
 let radioBusy = Promise.resolve();
-function radioFx(buf) {
+function radioFx(buf, direct) {
   const ctx = A.ctx, t = ctx.currentTime, src = ctx.createBufferSource(); src.buffer = buf;
+  const g = ctx.createGain(); g.gain.value = direct ? 1.1 : 0.85;
+  if (direct) {   // voz ao vivo, no pátio (espacial)
+    const pan = ctx.createPanner(); Object.assign(pan, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 3, rolloffFactor: 0.8, maxDistance: 60 });
+    pan.positionX.value = CELESTE.position.x; pan.positionY.value = 1.4; pan.positionZ.value = CELESTE.position.z;
+    src.connect(g).connect(pan); pan.connect(A.master); const sd = ctx.createGain(); sd.gain.value = 0.25; pan.connect(sd).connect(A.verb);
+    src.start(t + 0.05); return src;
+  }
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 380;
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3600;
   const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = 1700; pk.Q.value = 1.2; pk.gain.value = 6;
   const sh = ctx.createWaveShaper(), cv = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; cv[i] = Math.tanh(x * 2.2) / Math.tanh(2.2); } sh.curve = cv;
-  const g = ctx.createGain(); g.gain.value = 0.85;
   const send = ctx.createGain(); send.gain.value = 0.55;            // o prédio inteiro ecoa
   const dl = ctx.createDelay(1); dl.delayTime.value = 0.23; const fb = ctx.createGain(); fb.gain.value = 0.28; const dg = ctx.createGain(); dg.gain.value = 0.22;
   src.connect(hp).connect(lp).connect(pk).connect(sh).connect(g); g.connect(A.master); g.connect(send).connect(A.verb);
   g.connect(dl); dl.connect(fb).connect(dl); dl.connect(dg).connect(A.master);
   src.start(t + 0.12); return src;
 }
-function radioSay(i) {
+function radioSay(i, direct) {
   return new Promise(res => {
-    const buf = A.radio && A.radio[i], who = PROG.metCeleste ? 'CELESTE (ALTO-FALANTE)' : 'ALTO-FALANTE';
+    const buf = A.radio && A.radio[i], who = direct ? 'CELESTE' : PROG.metCeleste ? 'CELESTE (ALTO-FALANTE)' : 'ALTO-FALANTE';
     const dur = buf ? buf.duration + 0.25 : 1.2 + RADIO_LINES[i].length * 0.065;
     msg(who + ' — ' + RADIO_LINES[i], dur + 0.8);
-    burst({ f: 1500, q: 1.2, peak: 0.08, a: 0.01, d: 0.25 }); tone({ f: 950, f2: 720, type: 'square', peak: 0.012, d: 0.1 });
-    if (buf && A.ctx) radioFx(buf);
-    setTimeout(() => { burst({ f: 2200, q: 1, peak: 0.05, a: 0.005, d: 0.18 }); res(); }, dur * 1000 + 350);
+    if (!direct) { burst({ f: 1500, q: 1.2, peak: 0.08, a: 0.01, d: 0.25 }); tone({ f: 950, f2: 720, type: 'square', peak: 0.012, d: 0.1 }); }
+    if (buf && A.ctx) radioFx(buf, direct);
+    setTimeout(() => { if (!direct) burst({ f: 2200, q: 1, peak: 0.05, a: 0.005, d: 0.18 }); res(); }, dur * 1000 + 350);
   });
 }
-function radio(ids, done) {   // fala em sequência, sem atropelar outra transmissão
-  radioBusy = radioBusy.then(async () => { for (const i of ids) { if (i === 4) PROG.metCeleste = true; await radioSay(i); await new Promise(r => setTimeout(r, 450)); } if (done) done(); });
+function radio(ids, done, direct) {   // fala em sequência, sem atropelar outra transmissão
+  radioBusy = radioBusy.then(async () => { for (const i of ids) { if (i === 4) PROG.metCeleste = true; await radioSay(i, direct); await wait(450); } if (done) done(); });
 }
 
 // ---------- fim do capítulo I ----------
@@ -2560,19 +2866,13 @@ function endChapter1() {
   msg('A porta blindada não se move. No visor: TRAVA DE SEGURANÇA — AUTORIZAÇÃO DA DIRETORIA.', 5);
   saveProgress(); setCheckpoint();
   setTimeout(() => {
-    openDoor(DOORS.fogo); SFX.clank({ x: 43 * CS, y: 2, z: 14 * CS }); eastLights(true);
+    openDoor(DOORS.fogo); SFX.clank({ x: 43 * CS, y: 2, z: 14 * CS }); applyLights();
     radio([0, 1, 2, 3], () => { if (!P.dead) showChapter(2); });
   }, 5200);
 }
 // ---------- capítulo II ----------
-function takeTape(it) {
-  it.active = false; it.mesh.visible = false; if (!PROG.tapes.includes(it.n)) PROG.tapes.push(it.n);
-  saveProgress(); setCheckpoint(); SFX.click(); burst({ f: 3000, q: 0.5, peak: 0.05, a: 0.05, d: 1.2 });
-  const [t, b] = TAPE_TEXT[it.n];
-  showDoc(t, b, 'tape', () => { if (PROG.tapes.length >= 3) msg('Doze, zero três. O código do escritório: 1-2-0-3.', 4); else msg(`Fitas do Dr. Varela: ${PROG.tapes.length}/3`, 2.5); });
-}
 function useKeypad() {
-  if (PROG.tapes.length < 3) { tone({ f: 220, type: 'square', peak: 0.08, d: 0.25 }); msg('Você não sabe o código. As fitas do Dr. Varela devem dizer.', 3); return; }
+  if (MANDATORY_TAPES.some(n => !PROG.tapes.includes(n))) { tone({ f: 220, type: 'square', peak: 0.08, d: 0.25 }); msg('Você não sabe o código. As sessões gravadas do Dr. Varela devem dizer.', 3); return; }
   [0, 1, 2, 3].forEach(i => setTimeout(() => tone({ f: 1400 + i * 120, type: 'square', peak: 0.05, d: 0.06 }), i * 180));
   setTimeout(() => { tone({ f: 2000, f2: 2400, type: 'square', peak: 0.06, d: 0.15 }); PROG.office = true; openDoor(DOORS.office); saveProgress(); msg('1-2-0-3. A trava estala.', 3); setTimeout(() => radio([5]), 3200); }, 900);
 }
@@ -2583,8 +2883,8 @@ function takeCard() {
 // ---------- capítulo III ----------
 function startChapter3() {
   PROG.ch = 3; LAMPS.forEach(l => { if (!PROG.lamps.includes(l.n)) { l.active = true; l.mesh.visible = true; } });
-  AI.level = 4; saveProgress(); setCheckpoint();
-  showChapter(3, () => { setTimeout(() => SFX.scream(2), 700); msg('Lá fora, no corredor, algo arranha a porta da diretoria.', 3.5); AI.lastKnown = P.pos.clone(); AI.setState('hunt'); AI.goTo(P.pos, false); });
+  AI.level = 4; openDoor(DOORS.capela); applyLights(); saveProgress(); setCheckpoint();
+  showChapter(3, () => { radio([9]); setTimeout(() => SFX.scream(2), 700); AI.lastKnown = P.pos.clone(); AI.setState('hunt'); AI.goTo(P.pos, false); });
 }
 function useReader() {
   if (!PROG.card) { tone({ f: 180, type: 'square', peak: 0.08, d: 0.3 }); msg('ACESSO RESTRITO À DIRETORIA CLÍNICA.', 2.5); return; }
@@ -2601,25 +2901,65 @@ function discharge() {
   FOTO.cool = 14; FOTO.flashT = 2.8; SFX.zap(); boom(); addTrauma(0.9); CONSOLE.lever.rotation.x = 0.6;
   setTimeout(() => { CONSOLE.lever.rotation.x = -0.6; }, 1500);
   const [ax, az] = cellOf(AI.pos);
-  if (ax >= 55 && ax <= 64 && az >= 16 && az <= 25 && AI.state !== 'dead' && AI.state !== 'dying') killCreature();
+  if (ax >= 55 && ax <= 64 && az >= 16 && az <= 25 && AI.state !== 'dead' && AI.state !== 'dying') burnCreature();
   else { msg('Ele não estava na sala. Os capacitores recarregam… e ele ouviu.', 4); emitNoise(CONSOLE.pos, 80, 3); }
 }
-function killCreature() {
-  PROG.killed = true; saveProgress();
-  AI.state = 'dying'; AI.t = 0; AI.speed = 0; AI.path = []; AI.burnAcc = 1; stats.burns++;
+function burnCreature() {   // ele queima… e foge pelo alçapão do crematório
+  PROG.burned = true; saveProgress();
+  AI.state = 'dying'; AI.t = 0; AI.speed = 0; AI.path = []; AI.burnAcc = 1; AI.dyingKind = 'burn'; stats.burns++;
   SFX.scream(3.5); setTimeout(() => SFX.scream(2.5), 1300);
   msg('Dez mil lux.', 3);
-  setTimeout(() => msg('Por um instante, no meio da luz, você vê um rapaz de dezenove anos cobrindo os olhos.', 6), 3000);
-  setTimeout(() => { AI.state = 'dead'; C.root.visible = false; AI.pos.set(-60, 0, -60); }, 6000);
-  setTimeout(() => radio([7]), 6800);
-  setTimeout(() => { openExit(); msg('A sobrecarga derrubou todas as travas do prédio. A porta principal está aberta.', 5); setTimeout(() => radio([8]), 5500); }, 10500);
+  setTimeout(() => msg('Por um instante, no meio da luz, você vê um rapaz de dezenove anos cobrindo os olhos.', 5), 2600);
+  setTimeout(() => {   // ele se levanta e some na escuridão
+    AI.state = 'dead'; C.root.visible = false; AI.pos.set(-60, 0, -60); C.root.rotation.x = 0;
+    SFX.clank({ x: 53 * CS, y: 1, z: 32 * CS }); openDoor(DOORS.alcapao); msg('Um estrondo metálico no crematório. O alçapão da escada de serviço foi arrancado.', 5);
+  }, 5200);
+  setTimeout(() => {   // o QG-1 não aguenta a sobrecarga: o prédio volta ao escuro
+    boom(); PROG.ch = 4; applyLights(); openDoor(DOORS.grade); saveProgress(); setCheckpoint();
+    radio([7, 10, 11], () => { if (!P.dead) showChapter(4, startChapter4); });
+  }, 8500);
 }
-function openExit(instant) {
-  if (exitDoor.opening) return; exitDoor.opening = true; exitDoor.it.active = false;
-  dawn.on = true; dawn.L.intensity = dawn.base = 40; exitDoor.sign.material.emissive.set(0x20ff60); exitDoor.sign.material.emissiveIntensity = 1.5;
-  if (instant) { exitDoor.open = 1; exitDoor.mesh.position.y = CFG.wallH / 2 + (CFG.wallH - 0.4); grid[idx(21, 26)] = '.'; grid[idx(22, 26)] = '.'; rebuildBlocked(); }
-  else SFX.door();
-  computeLightGrid();
+// ---------- capítulo IV ----------
+const DAWN = { phase: '', t: 0 };
+function startChapter4() {
+  AI.state = 'patrol'; AI.path = []; AI.pos.copy(center(20, 35)); AI.level = 4; AI.grace = 10; AI.burnAcc = 0; C.root.visible = true; C.root.rotation.x = 0;
+  msg('A rede inteira caiu. Só restam as luzes de emergência.', 4);
+}
+function takeCrank(it) {
+  it.active = false; it.mesh.visible = false; PROG.crank = true; SFX.pickup(); saveProgress(); setCheckpoint();
+  msg('Manivela do portão do pátio. Pesada, enferrujada.', 3);
+}
+function startDawnRun() {
+  PROG.gateOpen = true; openDoor(DOORS.patio); saveProgress(); setCheckpoint();
+  DAWN.phase = 'run'; DAWN.t = 0; AI.ignition = true; AI.grace = 0; AI.lastKnown = P.pos.clone(); AI.setState('chase');
+  moon.on = true; computeLightGrid(); emitNoise(P.pos, 80, 3);
+  radio([14]);
+}
+function sunrise() {
+  DAWN.phase = 'sun'; AI.ignition = false; AI.state = 'sunwalk'; AI.path = []; AI.t = 0; AI.goTo(center(30, 46), false);
+  STREET.active = true; scene.background = new THREE.Color(0x2a2a3a);
+  msg('06:04.', 3);
+  setTimeout(() => msg('O sol nasce sobre o pátio. Ele para. Pela primeira vez em cinco anos, ele vê o dia.', 6), 3000);
+  setTimeout(() => radio([15, 16], () => radio([8], null, true), true), 6500);
+}
+
+/* ---------------------------------------------------------------
+   SELEÇÃO DE CAPÍTULOS — começa um capítulo do zero, com o progresso anterior resolvido
+   --------------------------------------------------------------- */
+function chapterStartSave(n) {
+  const base = { v: 2, ids: [1, 2, 3, 4, 5], met: true };
+  if (n === 2) return { ...base, ch: 2, met: false };
+  if (n === 3) return { ...base, ch: 3, tapes: [3, 4, 5], office: true, card: true };
+  if (n === 4) return { ...base, ch: 4, tapes: [3, 4, 5], office: true, card: true, fotoOpen: true, lamps: [1, 2, 3], burned: true };
+  return null;
+}
+function refreshChapters() {
+  const u = Math.max(loadJ('formol_unlocked') || 1, (loadJ('formol_save') || {}).ch || 1);
+  document.querySelectorAll('#chapItems li').forEach(li => { const n = +li.dataset.ch; li.classList.toggle('dis', n > u); li.querySelector('small').textContent = n > u ? 'BLOQUEADO' : CHAPTERS[n][1]; });
+}
+function playChapter(n) {
+  if (n === 1) { newGame(); return; }
+  saveJ('formol_save', chapterStartSave(n)); showPanel(null); continueGame();
 }
 
 /* ---------------------------------------------------------------
@@ -2632,18 +2972,20 @@ function silenceAmbience(sec) { if (!A.ctx) return; const t = A.ctx.currentTime;
 function showMap(on) {
   $('map').style.display = on ? 'flex' : 'none'; if (!on) return;
   const c = $('mapc'), g = c.getContext('2d'), s = 10; g.fillStyle = '#0b0f0e'; g.fillRect(0, 0, c.width, c.height);
-  const col = { pacientes: '#3b2b2b', enfermaria: '#2a3b33', admin: '#3a3726', corredor: '#3b1d1d', necroterio: '#22303b', recepcao: '#2b3a44', autopsia: '#33363a', subsolo: '#2a2420', rua: '#3a2c1c', leste: '#3b1d1d', privacao: '#241f2a', diretoria: '#3a2f22', gravacao: '#2c2a24', capela: '#3a2a1a', fototerapia: '#26323a', crematorio: '#3a2018' };
+  const col = { pacientes: '#3b2b2b', enfermaria: '#2a3b33', admin: '#3a3726', corredor: '#3b1d1d', necroterio: '#22303b', recepcao: '#2b3a44', autopsia: '#33363a', subsolo: '#2a2420', rua: '#3a2c1c', leste: '#3b1d1d', privacao: '#241f2a', diretoria: '#3a2f22', gravacao: '#2c2a24', capela: '#3a2a1a', fototerapia: '#26323a', crematorio: '#3a2018', galerias: '#2a2420', ossario: '#33302a', reservatorio: '#1c2a2a', quarto: '#3a2a22', patio: '#2a3428' };
   for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
     const v = grid[idx(x, z)]; if (v === '#') continue; const rg = regionAt(x, z);
-    if (EAST.has(rg) && PROG.ch < 2) { g.fillStyle = '#141414'; g.fillRect(x * s, z * s, s, s); continue; }   // ala lacrada: só a silhueta
+    if (PROG.ch < (REGION_CH[rg] || 1)) { if (PROG.ch + 1 >= (REGION_CH[rg] || 1)) { g.fillStyle = '#141414'; g.fillRect(x * s, z * s, s, s); } continue; }   // área do próximo capítulo: só a silhueta
     g.fillStyle = v === 'X' ? '#b8901c' : col[rg]; g.fillRect(x * s, z * s, s, s);
   }
   g.fillStyle = '#9ab'; g.font = '10px monospace';
   [['ALA DE PACIENTES', 2, 6.5], ['ENFERMARIA', 18, 6.5], ['ADMINISTRAÇÃO', 32, 9.6], ['CORREDOR CENTRAL', 16, 14.3], ['NECROTÉRIO', 2, 19], ['RECEPÇÃO', 19, 21], ['AUTÓPSIA / LAB', 30, 23], ['SUBSOLO', 3, 33.3], ['SAÍDA', 21, 33.3]].forEach(([t, x, z]) => g.fillText(t, x * s, z * s));
-  if (PROG.ch >= 2) [['CÂMARAS DE PRIVAÇÃO', 44.2, 8.9], ['DIRETORIA', 58.6, 4.5], ['GRAVAÇÃO', 58.6, 10.6], ['PAVILHÃO LESTE', 49, 14.3], ['CAPELA', 46.5, 19.5], ['FOTOTERAPIA', 57, 18.6], ['CREMATÓRIO', 48, 30]].forEach(([t, x, z]) => g.fillText(t, x * s, z * s));
-  else { g.fillStyle = '#556'; g.fillText('PAVILHÃO LESTE — INTERDITADO', 46 * s, 17 * s); }
-  if (PROG.ch >= 3 && !PROG.killed) { g.fillStyle = '#9fd0ff'; g.fillRect(63.6 * s, 19.6 * s, 8, 8); g.fillText(`CONSOLE ${PROG.lamps.length}/3`, 58.5 * s, 22.3 * s); }
-  g.fillStyle = '#f0b35a'; g.fillRect(17.6 * s, 15.6 * s, 8, 8); g.fillText(PROG.ch >= 2 ? 'QG-1 ENERGIZADO' : `PAINEL ${P.installed}/5`, 19 * s, 17 * s);
+  if (PROG.ch >= 2) [['CÂMARAS DE PRIVAÇÃO', 44.2, 8.9], ['DIRETORIA', 58.6, 4.5], ['GRAVAÇÃO', 58.6, 10.6], ['PAVILHÃO LESTE', 49, 14.3]].forEach(([t, x, z]) => g.fillText(t, x * s, z * s));
+  else { g.fillStyle = '#556'; g.fillText('PAVILHÃO LESTE — INTERDITADO', 46 * s, 9 * s); }
+  if (PROG.ch >= 3) [['CAPELA', 46.5, 19.5], ['FOTOTERAPIA', 57, 18.6], ['CREMATÓRIO', 48, 30]].forEach(([t, x, z]) => g.fillText(t, x * s, z * s));
+  if (PROG.ch >= 4) [['GALERIAS', 31, 36.8], ['OSSÁRIO', 16.5, 40.2], ['RESERVATÓRIO', 33, 39.4], ['QUARTO DA CELESTE', 55.6, 44.2], ['PÁTIO INTERNO', 26.5, 47.2]].forEach(([t, x, z]) => g.fillText(t, x * s, z * s));
+  if (PROG.ch === 3 && !PROG.burned) { g.fillStyle = '#9fd0ff'; g.fillRect(63.6 * s, 19.6 * s, 8, 8); g.fillText(`CONSOLE ${PROG.lamps.length}/3`, 58.5 * s, 22.3 * s); }
+  g.fillStyle = '#f0b35a'; g.fillRect(17.6 * s, 15.6 * s, 8, 8); g.fillText(PROG.ch >= 4 ? 'QG-1 QUEIMADO' : PROG.ch >= 2 ? 'QG-1 ENERGIZADO' : `PAINEL ${P.installed}/5`, 19 * s, 17 * s);
   const [px, pz] = [P.pos.x / CS, P.pos.z / CS]; g.fillStyle = '#fff'; g.beginPath(); g.arc(px * s, pz * s, 4, 0, 7); g.fill();
   g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(px * s, pz * s); g.lineTo(px * s - Math.sin(P.yaw) * 12, pz * s - Math.cos(P.yaw) * 12); g.stroke();
 }
@@ -2779,6 +3121,10 @@ function updatePlayer(dt) {
     installT += dt; $('prog').style.display = 'block'; $('prog').firstChild.style.width = (installT / 3 * 100) + '%';
     if (Math.random() < dt * 6) burst({ f: 4000, type: 'highpass', peak: 0.1, d: 0.04 });
     if (installT >= 3) { installT = 0; installOne(); }
+  } else if (eHeld && it && it.type === 'door' && it.door.key === 'patio' && PROG.crank && !PROG.gateOpen) {
+    installT += dt; $('prog').style.display = 'block'; $('prog').firstChild.style.width = (installT / 5 * 100) + '%';
+    if (Math.random() < dt * 5) { burst({ f: 700, q: 4, peak: 0.12, d: 0.12 }); emitNoise(P.pos, 12, 2); }
+    if (installT >= 5) { installT = 0; startDawnRun(); }
   } else if (eHeld && it && it.type === 'console' && P.lamps.length && PROG.ch >= 3 && PROG.lamps.length < 3) {
     installT += dt; $('prog').style.display = 'block'; $('prog').firstChild.style.width = (installT / 2 * 100) + '%';
     if (Math.random() < dt * 6) burst({ f: 2500, type: 'highpass', peak: 0.08, d: 0.05 });
@@ -2864,6 +3210,15 @@ function updateFlashlight(dt, time) {
   $('batt').firstChild.style.width = fl.battery + '%'; $('batt_t').textContent = Math.ceil(fl.battery) + '%';
   $('batt').firstChild.style.background = fl.battery < 15 ? '#c23a2c' : '#d9e6d0';
 }
+function assignLightPool() {
+  const cp = camera.position, act = [];
+  for (const l of LIGHTS) if (l.L.intensity > 0.01) act.push([l.pos.distanceToSquared(cp), l]);
+  act.sort((a, b) => a[0] - b[0]);
+  for (let i = 0; i < LIGHT_POOL.length; i++) {
+    const p = LIGHT_POOL[i], e = act[i];
+    if (e) { const l = e[1]; p.position.copy(l.pos); p.color.copy(l.L.color); p.intensity = l.L.intensity; p.distance = l.range; } else p.intensity = 0;
+  }
+}
 function updateLights(dt, time) {
   // blackout ocasional na recepção quando ele está furioso
   if (AI.level >= 3 && !AI.ignition && blackout <= 0 && Math.random() < dt / 120 && AI.pos.distanceTo(P.pos) < 25) { blackout = 7; computeLightGrid(); msg('As luzes da recepção apagaram…', 2.5); }
@@ -2878,6 +3233,7 @@ function updateLights(dt, time) {
     l.L.intensity = l.base * k;
     l.fixture.material.emissiveIntensity = l.on ? (l.kind === 'red' ? 2 : 1.6) * k + 0.02 : 0.02;
   }
+  assignLightPool();
 }
 function updateDanger() {
   const st = AI.state, d = AI.pos.distanceTo(P.pos);
@@ -2970,13 +3326,31 @@ function step(dt, time) {
   // descarga da fototerapia
   if (FOTO.cool > 0) FOTO.cool -= dt;
   if (FOTO.flashT > 0) { FOTO.flashT -= dt; const k = Math.max(0, FOTO.flashT / 2.8); FOTO.light.intensity = 1400 * k * k * (Math.random() < 0.15 ? 0.5 : 1); ARC_RIGS.forEach(g => { g.material.emissiveIntensity = 12 * k; }); if (FOTO.flashT <= 0) { FOTO.light.intensity = 0; ARC_RIGS.forEach(g => { g.material.emissiveIntensity = 0; }); } }
-  // a criatura queimando até cair
+  // capítulo IV: primeira descida às galerias, contagem até o amanhecer, o sol
+  if (PROG.ch === 4 && !PROG.visitedGal && UNDER.has(P.region)) { PROG.visitedGal = true; saveProgress(); setTimeout(() => radio([12]), 1200); }
+  if (DAWN.phase === 'run') { DAWN.t += dt; if (Math.random() < dt * 0.35) emitNoise(P.pos, 40, 3); if (DAWN.t >= CFG.dawnTime) sunrise(); }
+  if (DAWN.phase === 'sun') {
+    SUN.intensity = lerp(SUN.intensity, 420, dt * 0.25); moon.base = lerp(moon.base, 30, dt * 0.2);
+    scene.background.lerp(_c1.set(0x9a7a6a), dt * 0.08);
+  }
+  if (AI.state === 'sunwalk') {
+    AI.t += dt; AI.speed = lerp(AI.speed, 1.0, dt * 2); AI.move(dt);
+    if (!AI.path.length || AI.t > 30) { AI.state = 'dying'; AI.dyingKind = 'peace'; AI.t = 0; AI.speed = 0; }
+  }
+  // a criatura queimando (cap. III) ou se desfazendo em paz ao sol (cap. IV)
   if (AI.state === 'dying') {
-    AI.t += dt; AI.burnAcc = 1;
-    C.root.rotation.x = -Math.min(1.45, Math.max(0, AI.t - 2) * 1.1);
-    if (Math.random() < dt * 30) puff(AI.headPos(_v3), 1, true);
-    if (Math.random() < dt * 12) puff(C.spine.localToWorld(_v3.set(rand(-.15, .15), rand(0, .8), 0)), 1, true);
-    if (A.ctx) A.sizzleG.gain.setTargetAtTime(0.4, A.ctx.currentTime, 0.05);
+    AI.t += dt;
+    if (AI.dyingKind === 'peace') {
+      AI.burnAcc = 0; C.root.position.y = -Math.min(0.75, AI.t * 0.12); C.root.rotation.x = -Math.min(0.3, AI.t * 0.05);
+      if (Math.random() < dt * 14) puff(C.spine.localToWorld(_v3.set(rand(-.2, .2), rand(0, .9), 0)), 1, false, true);
+      if (AI.t > 11) { AI.state = 'dead'; C.root.visible = false; for (let k = 0; k < 18; k++) puff(AI.headPos(_v3), 1, false); }
+    } else {
+      AI.burnAcc = 1;
+      C.root.rotation.x = -Math.min(1.45, Math.max(0, AI.t - 2) * 1.1);
+      if (Math.random() < dt * 30) puff(AI.headPos(_v3), 1, true);
+      if (Math.random() < dt * 12) puff(C.spine.localToWorld(_v3.set(rand(-.15, .15), rand(0, .8), 0)), 1, true);
+      if (A.ctx) A.sizzleG.gain.setTargetAtTime(0.4, A.ctx.currentTime, 0.05);
+    }
   }
   updateObjective();
   // partículas de vapor
@@ -2999,5 +3373,5 @@ function step(dt, time) {
   P.noiseLevel = Math.max(0, P.noiseLevel - dt);
 }
 requestAnimationFrame(frame);
-window.__FORMOL = { A, get paused() { return paused; }, get playing() { return playing; }, pauseGame: () => pauseGame(), quickStart: () => { audioInit(); decodeAssets(); $('splash').style.display = 'none'; $('menu').style.display = 'none'; startGame(); }, get MODE() { return MODE; }, CINE, TORCH, hand, CAM, cycleShake, AI, P, fl, CFG, scene, camera, renderer, LIGHTS, lightGrid, interact, sim: (sec) => { let t = performance.now() / 1000; for (let k = 0; k < sec * 30; k++) { if (P.dead || P.won) break; step(1 / 30, t += 1 / 30); } }, setPaused: v => { paused = v; }, startPlaying: () => { playing = true; stats.t0 = performance.now(); }, killPlayer, respawn, installOne, startIgnition, computeLightGrid, PROG, UI, closeModal, DOORS, TAPES, LAMPS, CARD, CONSOLE, FOTO, FUSES, pressInteract, findInteract, regionAt, installLamp, showMap, get blocked() { return blocked; }, W, H };
+window.__FORMOL = { A, get paused() { return paused; }, get playing() { return playing; }, pauseGame: () => pauseGame(), quickStart: () => { audioInit(); decodeAssets(); $('splash').style.display = 'none'; $('menu').style.display = 'none'; startGame(); }, get MODE() { return MODE; }, CINE, TORCH, hand, CAM, cycleShake, AI, P, fl, CFG, scene, camera, renderer, LIGHTS, lightGrid, interact, sim: (sec) => { let t = performance.now() / 1000; for (let k = 0; k < sec * 30; k++) { if (P.dead || P.won) break; step(1 / 30, t += 1 / 30); } }, setPaused: v => { paused = v; }, startPlaying: () => { playing = true; stats.t0 = performance.now(); }, killPlayer, respawn, installOne, startIgnition, computeLightGrid, PROG, UI, closeModal, DOORS, TAPES, LAMPS, CARD, CONSOLE, FOTO, FUSES, pressInteract, findInteract, regionAt, installLamp, showMap, get blocked() { return blocked; }, W, H, DAWN, CRANK, STREET, playTape, stopTape, TP, sunrise, startDawnRun, playChapter, refreshChapters, openTapeList, CELESTE, SUN, MANDATORY_TAPES, applyLights };
 })();

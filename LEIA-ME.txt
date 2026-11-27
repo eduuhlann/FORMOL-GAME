@@ -13,17 +13,18 @@ CONTROLES
   Botão direito .. foco (queima o rosto da criatura)
   E .............. interagir / ler / esconder / segurar para instalar fusível ou lâmpada
   Tab ............ mapa              V ............ balanço da câmera
+  T .............. parar a fita do walkman
   Esc ............ pausa             Espaço (segurar) ... pular a intro
 
-CAPÍTULOS
-  I · APAGÃO — Ache os 5 fusíveis (Enfermaria, Segurança, Isolamento, Gaveta 7 do
-      Necrotério, Gerador do Subsolo), instale no QG-1 da recepção, puxe a alavanca
-      e sobreviva 25 segundos de ignição.
-  II · NOITE LONGA — No Pavilhão Leste, ache as 3 fitas do Dr. Varela, descubra o
-      código do escritório da diretoria e pegue o cartão.
-  III · FORMOL — Libere a Sala de Fototerapia com o cartão, encaixe as 3 lâmpadas
-      de arco no console, apague a lanterna, atraia a criatura para a sala,
-      acione a descarga e saia pela porta principal.
+CAPÍTULOS (o mapa cresce a cada um; Menu → Capítulos para rejogar)
+  I · APAGÃO — 5 fusíveis no QG-1 da recepção, alavanca, 25 s de ignição.
+  II · NOITE LONGA — Pavilhão Leste: 3 sessões gravadas do Dr. Varela,
+      código do escritório (1-2-0-3), cartão da diretoria.
+  III · FORMOL — capela, fototerapia e crematório: 3 lâmpadas de arco no
+      console, apague a lanterna, atraia-o para a sala e acione a descarga.
+  IV · AMANHECER — galerias subterrâneas: quarto da Celeste, manivela,
+      portão do Pátio Interno e sobreviver até o sol nascer (06:04).
+  8 fitas cassete tocam no walkman com legenda (Pausa → Fitas para ouvir de novo).
   O jogo salva a cada fusível, fita, lâmpada e mudança de capítulo.
   A história completa está em documento-de-design/LORE.md.
 
@@ -32,13 +33,14 @@ O QUE TEM NESTE PACOTE
   Jogar online.url ........... link do jogo publicado
   documento-de-design/
      FORMOL_GDD.md ........... documento de design (conceito, mecânicas, IA, mapa, arte, áudio, produção)
-     LORE.md ................. história, personagens, linha do tempo e os 3 capítulos
+     LORE.md ................. história, personagens, linha do tempo, os 4 capítulos e as fitas
      diagrama_ia_criatura.png  estados da criatura
      mapa_niveis.png ......... planta dos setores e fusíveis
      GDD online (editável).url versão completa e editável (exporta para Word/PDF)
   audio/
      narracao/ ............... 9 falas da intro já tratadas + roteiro.txt
-     altofalante/ ............ 9 falas da enfermeira Celeste (alto-falante), já tratadas
+     altofalante/ ............ 17 falas da enfermeira Celeste (alto-falante), já tratadas
+     fitas/ .................. 42 falas das 8 fitas cassete, já tratadas
      passos/ ................. 36 passos individuais (azulejo, correndo, água, criatura)
      originais_elevenlabs/ ... arquivos brutos gerados na ElevenLabs
   codigo-fonte/
@@ -58,5 +60,6 @@ EDITAR O JOGO
 CRÉDITOS
   Direção, design, código, arte procedural e som: eduuhlann.
   Narração e passos: ElevenLabs (voz "Carlos – Resonant & Majestic Storyteller").
-  Alto-falante (enfermeira Celeste): ElevenLabs (voz "Matilda").
+  Alto-falante e fitas: ElevenLabs — Celeste (Matilda), Dr. Varela (George),
+  Tomás (Liam), vigia Osmar (Bill).
   Three.js (MIT).

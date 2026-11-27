@@ -1,105 +1,108 @@
-# FORMOL — Lore e estrutura de capítulos
+# FORMOL — Lore completa
 
-eduuhlann · Instituto São Lázaro, novembro de 1987
+eduuhlann · Instituto São Lázaro, 3 de novembro de 1987, das 03h12 às 06h04
 
-## A premissa em uma frase
+## A história em um parágrafo
 
-Um eletricista é trancado de madrugada num antigo sanatório e descobre que a coisa que caça ele no escuro é um rapaz de 19 anos que um psiquiatra deixou nove meses sem luz e depois queimou com ela.
+Em 1982, um rapaz de 19 anos com fotofobia, Tomás Aurélio Reis, é internado pelo pai no Instituto São Lázaro. O psiquiatra Antônio Varela o tranca nove meses no escuro absoluto (o "Programa Noite Longa") e depois o expõe a 10.000 lux para "ver o que a luz faz com quem esqueceu dela". Tomás morre queimado, é embalsamado com formol e, três dias depois, sai sozinho da gaveta 7. Quatro anos mais tarde, numa madrugada de apagão, um eletricista fica preso no prédio. Para sair, ele precisa religar a luz, descobrir o que aconteceu, enfrentar a coisa no escuro e, no fim, entender que ela só queria ver o sol. A enfermeira que guia o eletricista pelos alto-falantes é a mãe de Tomás.
 
 ## Personagens
 
-**Elias Prado** (protagonista, 41 anos). Eletricista terceirizado da prefeitura. Chamado às 03h12 de 03/11/1987 para uma "pane no quadro geral" do Instituto São Lázaro. Ninguém explicou por que o vigia parou de atender o rádio. Não é herói nem detetive: é um homem que sabe ligar e desligar coisas, e é exatamente isso que o prédio precisa.
-
-**Tomás Aurélio Reis — "Paciente 14", "O Residente"** (19 anos em 1983). Internado em abril de 1982 pelo pai, que o descreveu como alguém com "medo da luz" e crises ao amanhecer. Hoje se diria fotofobia associada a ansiedade; na época, virou cobaia. Passou nove meses na câmara 3 do Pavilhão Leste, sem nenhum fóton. As pupilas pararam de contrair, a pele perdeu o pigmento, ele passou a enxergar no escuro absoluto. Morreu em 12/03/1983, durante a "sessão de reexposição": quatro minutos sob lâmpadas de arco de 10.000 lux. O corpo foi injetado com formol para esconder as queimaduras e guardado na gaveta 7. Três dias depois, a gaveta estava aberta por dentro.
-
-O que voltou tem 2,6 m, pele branca encharcada de formol, olhos leitosos que não suportam luz e a memória confusa de um menino que queria ir para casa. Ele não odeia o Elias. Ele odeia a luz, porque foi a luz que o matou, e protege o escuro, porque o escuro virou a única casa que ele conhece.
-
-**Dr. Antônio Varela** (diretor clínico). Criador do Programa Noite Longa (1982–1983), uma "terapia de privação luminosa" financiada com verba estadual de pesquisa. Acreditava que a mente, sem luz, se "reconstruía". Depois da morte de Tomás, encobriu tudo, formolizou o corpo com as próprias mãos e, quando o paciente voltou, trancou-se com ele no Pavilhão Leste. Viveu quatro anos lá dentro, acendendo velas na capela toda noite e alimentando a culpa. Quando ouve as luzes voltarem, escreve uma carta para o eletricista e toma um frasco de pentobarbital. O Elias o encontra morto ao lado da mesa.
-
-**Celeste Amaral** (enfermeira-chefe, 52 anos). A voz no alto-falante, gravada com a ElevenLabs. Era a única autorizada a falar com o paciente 14 e levava a comida dele pela gaveta da porta, às 6h e às 18h, durante nove meses. Quando ele perguntava que horas eram lá fora, ela mentia: "ainda é noite". Cúmplice e culpada, ficou presa no Pavilhão Leste com Varela desde 1984. Destranca a porta corta-fogo para o Elias, guia o jogador pelos alto-falantes e pede perdão ao Tomás no fim. Ninguém a encontra depois. A vela acesa na gaveta 7, no epílogo, é dela.
-
-**Osmar** (vigia noturno). Sabia de quase tudo e fingia não saber. Na noite de 03/11/87, a criatura arrancou os 5 fusíveis do QG-1 para apagar o prédio; Osmar anotou onde cada um foi parar antes de sumir. Seus bilhetes são o fio que guia o Capítulo I.
-
-**Personagens secundários (só em documentos):** Padre Inácio, capelão que abençoou "uma gaveta vazia"; Dr. Saulo, legista que se recusou a assinar o laudo falso; o pai de Tomás, que nunca atendeu o telefone.
+| Personagem | Quem é | Como aparece no jogo |
+| --- | --- | --- |
+| **Elias Prado**, 41 | Eletricista terceirizado da prefeitura. Protagonista silencioso. | O jogador. Carrega uma lanterna de alumínio e um walkman. |
+| **Tomás Aurélio Reis**, "Paciente 14", "O Residente" | Internado aos 19 anos por "medo da luz". Nove meses no escuro, morto na reexposição de 12/03/1983, embalsamado na gaveta 7. Voltou. | A criatura. Também é a voz das fitas 2, 3, 6 e 8. |
+| **Celeste Amaral Reis**, 52 | Enfermeira-chefe do Programa Noite Longa. É a mãe de Tomás: aceitou o emprego para ficar perto do filho e virou cúmplice. Mentia todo dia para ele: "ainda é noite". | Voz dos alto-falantes (capítulos I–IV), fitas 4, 6 e 7, a mulher no banco do pátio no final. |
+| **Dr. Antônio Varela** | Diretor clínico, criador do programa. Formolizou o corpo de Tomás com as próprias mãos. Viveu trancado no Pavilhão Leste de 1984 a 1987. | Fitas 2–6. Morto no escritório (pentobarbital), com uma carta e o cartão da diretoria. |
+| **Osmar** | Vigia noturno. Sabia de tudo e fingia não saber. Desaparece às 02h de 03/11/87. | Fita 1 e bilhetes do capítulo I. |
+| Padre Inácio, Dr. Saulo (legista), o pai de Tomás | Testemunhas que escolheram não ver. | Só em documentos. |
 
 ## Linha do tempo
 
 | Data | Evento |
 | --- | --- |
-| 1931 | Fundação do Instituto São Lázaro, sanatório psiquiátrico. |
-| 1979 | Instalação do Quadro Geral QG-1. Dr. Antônio Varela assume a diretoria clínica. |
-| 04/1982 | Tomás Aurélio Reis é internado a pedido do pai. |
-| 02/06/1982 | Sessão 001 do Programa Noite Longa. Tomás entra na câmara 3. |
-| 11/03/1983 | Sessão 094. Varela grava que fará a reexposição "amanhã, dia doze". |
-| 12/03/1983 | Reexposição na sala de fototerapia (10.000 lux). Tomás morre queimado. |
-| 13/03/1983 | Corpo descido ao necrotério já formolizado. Laudo falso: "parada cardiorrespiratória". |
-| 16/03/1983 | Gaveta 7 encontrada aberta por dentro. Corpo ausente. |
-| 02/1984 | Pavilhão Leste lacrado. Porta corta-fogo com trava eletromagnética ligada ao QG-1. A ala sul vira necrotério municipal. |
-| 11/1984 | Ordem de incinerar os prontuários do programa. O forno é aceso com a gaveta 7 dentro; ele não estava lá. |
-| 1984–1987 | Varela vive trancado no Pavilhão Leste. Funcionários desaparecem; ninguém investiga. |
-| 03/11/1987, 02h | Osmar para de responder ao rádio. A criatura arranca os 5 fusíveis. |
-| 03/11/1987, 03h12 | Elias Prado chega. A energia cai e a porta blindada trava. **Início do jogo.** |
-| 03/11/1987, 06h04 | Elias sai pela porta da frente. **Fim do jogo.** |
+| 1931 | Fundação do Instituto São Lázaro e das galerias de serviço sob o prédio. |
+| 1971 | Celeste e Tomás, aos 8 anos, na praia de Cabo Frio. Ele reclama do sol o dia inteiro (foto no quarto da Celeste). |
+| 1979 | Dr. Antônio Varela assume a diretoria clínica. Instalação do QG-1. |
+| 19/04/1982 | Admissão de Tomás, a pedido do pai (fita 2). Celeste consegue a vaga de enfermeira-chefe. |
+| 02/06/1982 | Sessão 001 do Programa Noite Longa (fita 3). |
+| 11/03/1983 | Sessão 094. Celeste diz ao filho "que ainda é noite" (fita 4). |
+| 12/03/1983 | Reexposição a 10.000 lux. Tomás chama pela mãe enquanto queima (fita 6). |
+| 13–16/03/1983 | Corpo formolizado, laudo falso, gaveta 7 aberta por dentro (fita 5, livro de ocorrências, laudo nº 113/83). |
+| 02/1984 | Pavilhão Leste lacrado. Varela e Celeste ficam lá dentro. |
+| 11/1984 | Tentam cremar o conteúdo da gaveta 7. Ele não estava lá. |
+| 03/11/1987, 02h | Osmar some. A criatura arranca os 5 fusíveis do QG-1 (fita 1). |
+| 03h12 | Elias chega. A porta blindada trava. **Capítulo I.** |
+| ~04h | A ignição religa o prédio e destrava o Pavilhão Leste. **Capítulo II.** |
+| ~05h | Varela é encontrado morto. **Capítulo III.** |
+| 05h41 | A descarga de 10.000 lux o queima, mas não o mata; o QG-1 explode. **Capítulo IV.** |
+| 06h04 | O sol nasce sobre o Pátio Interno. Tomás vê o dia. Fim. |
+| 1989 | O instituto é demolido. |
 
-## Estrutura dos capítulos
+## Os 4 capítulos
+
+O mapa cresce a cada capítulo: o mapa do Tab mostra a área do capítulo seguinte só como silhueta.
 
 ### Capítulo I — APAGÃO (prédio principal)
 
-*"Cinco fusíveis. Era tudo o que eu precisava pra sair dali."*
+- **Objetivo:** 5 fusíveis (Enfermaria, Segurança, Isolamento, Gaveta 7, Gerador do Subsolo) → Quadro Geral QG-1 na recepção → alavanca → sobreviver a 25 s de ignição.
+- **Fitas:** 1 (vigia Osmar, sala de segurança) e 2 (admissão do Tomás, enfermaria).
+- **Documentos:** bilhete do Osmar, prontuário P-14, livro de ocorrências, laudo de necropsia, carta do Tomás para a mãe, aviso de interdição, diário do vigia.
+- **Reviravolta:** a porta da frente não abre ("autorização da diretoria"). Em vez dela, destrava a porta corta-fogo do Pavilhão Leste, e uma mulher agradece pelo alto-falante.
 
-- **Objetivo:** achar os 5 fusíveis (Enfermaria, Segurança, Isolamento, Gaveta 7 do Necrotério, Gerador do Subsolo), instalar no QG-1 da recepção, puxar a alavanca e sobreviver aos 25 s de ignição.
-- **Documentos:** bilhete do vigia Osmar, prontuário P-14, livro de ocorrências da segurança, laudo de necropsia nº 113/83, carta nunca enviada de Tomás para a mãe, aviso de interdição do Pavilhão Leste, diário do vigia.
-- **Reviravolta:** a ignição termina, mas a porta blindada não abre ("TRAVA DE SEGURANÇA — AUTORIZAÇÃO DA DIRETORIA"). Em vez dela, a porta corta-fogo do Pavilhão Leste destrava e uma voz de mulher agradece pelo alto-falante: é a enfermeira Celeste.
+### Capítulo II — NOITE LONGA (Pavilhão Leste, ala norte)
 
-### Capítulo II — NOITE LONGA (Pavilhão Leste)
+- **Mapa novo:** corredor leste, Câmaras de Privação, Sala de Gravação, Diretoria.
+- **Objetivo:** as 3 sessões gravadas do Varela (fitas 3, 4 e 5). A fita 5 revela o código do escritório, **1-2-0-3**, o dia em que Tomás morreu. Abrir a diretoria e revistar o corpo do Varela.
+- **Alto-falante:** Celeste se apresenta ("Eu só levava a comida") e reage à morte do doutor.
+- **Reviravolta:** a carta do Varela fala das lâmpadas de arco e de uma sobrecarga que derrubaria as travas.
 
-*"A partir de hoje, a noite é a sua casa."*
+### Capítulo III — FORMOL (Pavilhão Leste, ala sul)
 
-- **Áreas novas:** corredor leste, Câmaras de Privação (5 celas sem janela), Sala de Gravação, Capela, Diretoria.
-- **Objetivo:** encontrar as 3 fitas do Dr. Varela (câmara 3, sala de gravação, capela). Juntas, elas revelam o código do escritório: **1-2-0-3**, o dia em que Tomás morreu. Abrir a diretoria e revistar o corpo do Varela.
-- **Alto-falante:** ao entrar no pavilhão, Celeste se apresenta; quando o escritório abre, ela pergunta se o doutor está morto.
-- **Documentos:** escala de plantão (com a anotação da Celeste), regras do Programa Noite Longa, rabiscos de Tomás na parede da câmara 1, diário do Padre Inácio, etiqueta do arquivo de fitas, as 3 transcrições.
-- **Reviravolta:** Varela está morto ao lado da mesa. No bolso, o cartão da diretoria e uma carta: a porta da frente só cede com uma sobrecarga na rede, e a única coisa capaz de causar essa sobrecarga, e de parar Tomás, é a mesma luz que o matou.
+- **Mapa novo:** Capela (destrancada pela Celeste), Sala de Fototerapia (cartão), Crematório.
+- **Objetivo:** 3 lâmpadas de arco (crematório, altar da capela, câmara fria do necrotério; a última aparece na capela) → console → apagar a lanterna → deixar que ele entre na sala → descarga.
+- **Fita:** 6, a gravação da reexposição, em que Tomás grita "Mãe!".
+- **Reviravolta:** ele queima, mas sobrevive e foge pelo alçapão do crematório. A sobrecarga explode o QG-1: o prédio volta ao escuro e a porta da frente trava de vez.
 
-### Capítulo III — FORMOL (Pavilhão Leste + necrotério)
+### Capítulo IV — AMANHECER (galerias subterrâneas e Pátio Interno)
 
-*"Dez mil lux."*
-
-- **Áreas novas:** Sala de Fototerapia (liberada pelo cartão, com porta dos fundos para o crematório) e Crematório.
-- **Objetivo:**
-  1. Usar o cartão no leitor da Sala de Fototerapia.
-  2. Recuperar as 3 lâmpadas de arco escondidas por Varela: no forno do crematório, no altar da capela e na câmara fria do necrotério (volta ao mapa do Capítulo I). As lâmpadas carregadas se perdem ao morrer, como os fusíveis.
-  3. Encaixar as 3 no console (segurar E).
-  4. **Apagar a lanterna** (ele não chega perto de quem carrega luz), deixá-lo seguir você para dentro da sala e acionar a descarga. Se ele não estiver na sala, os capacitores levam 14 s para recarregar, e o estrondo o atrai.
-  5. Com a sobrecarga, todas as travas do prédio cedem. Sair pela porta principal.
-- **Alto-falante:** com as 3 lâmpadas no console, Celeste diz para apagar a lanterna, porque ele sempre vem até quem está no escuro. Depois da descarga, ela pede desculpas ao Tomás e manda o Elias ir embora sem olhar para trás.
-- **Clímax:** a descarga queima a criatura. Por um instante, no meio da luz, Elias vê um rapaz de dezenove anos cobrindo os olhos.
+- **Mapa novo:** túneis de 1931, Ossário, Reservatório, Quarto da Celeste e Pátio Interno a céu aberto.
+- **Objetivo:** descer às galerias → quarto da Celeste (fita 7 e manivela) → girar a manivela do portão do pátio (barulho) → sobreviver 75 s até o sol nascer.
+- **Fitas:** 7 (a confissão: "Eu sou a mãe dele") e 8 (Tomás reconheceu a mãe pela música, em 1983).
+- **Final:** às 06h04 o sol nasce. Tomás para de caçar, caminha até o pátio e senta ao lado da mãe. Ele se desfaz em silêncio na primeira luz do dia que vê em cinco anos. Celeste: "Olha, filho. Já é dia." / "Me perdoa." / "Vá embora. E não olhe para trás." Elias sai pelo portão dos fundos.
 
 ### Epílogo
 
-06h04. Elias atravessa a porta da frente com o sol nascendo. O laudo oficial vai falar em curto-circuito no Pavilhão Leste. Ninguém vai perguntar pelo vigia, pelo médico ou pelo paciente 14. Na gaveta 7, alguém deixou uma vela acesa. E, até o fim da vida, Elias vai dormir com a luz acesa.
+Os bombeiros encontram, horas depois, uma mulher de uniforme branco sentada no pátio, abraçada a um corpo embalsamado em 1983. Ela não quis sair de lá. O laudo oficial falou em curto-circuito. O instituto foi demolido em 1989. Até o fim da vida, Elias dormiu com a cortina aberta.
 
 ## Temas
 
-- **Luz como cura e como violência.** A lanterna protege o jogador, mas foi uma luz que criou o monstro. A vitória usa a mesma arma do crime.
-- **Instituições que esquecem.** Prefeitura, família, médico e funcionários: todos escolheram não ver. O prédio é um arquivo de omissões.
-- **O monstro como vítima.** Os documentos humanizam Tomás aos poucos; no Capítulo III, o jogador já sabe quem está queimando.
+- **Luz como violência e como cura.** A lanterna protege o jogador, a fototerapia cria o monstro e a descarga não resolve nada. Só a luz natural, oferecida em vez de imposta, encerra a história.
+- **A mentira de quem ama.** Celeste não é vilã nem heroína: ficou perto do filho mentindo para ele. O jogo inteiro é ela tentando, tarde demais, dizer a verdade ("já é dia").
+- **Instituições que esquecem.** Pai, médico, padre, legista, vigia e prefeitura: todos escolheram não ver.
 
-## Mapa (grade de 66 × 34 células de 2 m)
+## As 8 fitas cassete
 
-- **x 0–43, prédio principal (Capítulo I):** Ala de Pacientes, Enfermaria, Administração, Corredor Central, Necrotério e câmara fria, Recepção (QG-1 e porta blindada), Autópsia, Subsolo, Saída.
-- **x 44–65, Pavilhão Leste (Capítulos II e III):** Corredor Leste, Câmaras de Privação, Diretoria (teclado), Sala de Gravação, Capela, Sala de Fototerapia (leitor de cartão), Crematório.
-- O mapa do Tab mostra o Pavilhão Leste só como silhueta enquanto ele está lacrado.
+Tocam no walkman do Elias enquanto ele anda, com legenda. Ficam guardadas em Pausa → Fitas. Vozes geradas na ElevenLabs (modelo eleven_multilingual_v2).
 
-## Falas do alto-falante (Celeste)
+| Fita | Capítulo | Onde | Vozes | Conteúdo |
+| --- | --- | --- | --- | --- |
+| 1 | I | Sala de segurança | Osmar (Bill) | O vigia grava as últimas notas antes de descer ao gerador. |
+| 2 | I | Enfermaria | Varela (George), Tomás (Liam) | Admissão: "Não é medo. Dói." / "Minha mãe fechava as cortinas pra mim." |
+| 3 | II | Câmara 3 | Varela, Tomás | Sessão 001: "A partir de hoje, a noite é a sua casa." |
+| 4 | II | Sala de gravação | Varela, Celeste (Matilda) | Sessão 094: "Que ainda é noite." / anúncio da reexposição. |
+| 5 | II | Câmara 5 | Varela | A confissão bêbada e o código 12-03. |
+| 6 | III | Sala de fototerapia | Varela, Tomás, Celeste | A reexposição: "Mãe, por que você não apaga?" |
+| 7 | IV | Quarto da Celeste | Celeste | "Eu sou a mãe dele." |
+| 8 | IV | Ossário | Tomás | Ele reconheceu a mãe pela música, em 1983. |
 
-Voz: Matilda (ElevenLabs, modelo eleven_multilingual_v2), com filtro de rádio, distorção leve e eco aplicados no jogo. Arquivos brutos em audio/originais_elevenlabs/radio0–8.mp3; tratados em audio/altofalante/.
+## Alto-falante (Celeste, voz Matilda)
 
-| Arquivo | Quando | Fala |
-| --- | --- | --- |
-| radio0–3 | fim do Cap. I | "Obrigada, senhor eletricista." / "Faz quatro anos que ninguém acende as luzes para nós." / "A porta da frente obedece à diretoria. Venha até o Pavilhão Leste. Eu destranquei para o senhor." / "E não deixe que ele o veja com essa lanterna. Ele aprendeu a odiar a luz com a gente." |
-| radio4 | primeira entrada no Pavilhão Leste | "Meu nome é Celeste. Eu era a enfermeira-chefe do doutor Varela. As fitas dele contam o resto… Eu só levava a comida." |
-| radio5 | escritório aberto | "O doutor está aí dentro, não está? Ele finalmente teve coragem. Eu nunca tive." |
-| radio6 | 3 lâmpadas no console | "Apague a lanterna. Ele sempre vem até quem está no escuro. Ele sempre veio até mim." |
-| radio7 | após a descarga | "Desculpa, Tomás… Desculpa." |
-| radio8 | porta principal aberta | "A porta está aberta, senhor eletricista. Vá embora. E não olhe para trás." |
+Áudios em audio/altofalante/radio0–16.mp3. Falas 0–3: fim do cap. I. Fala 4: entrada no pavilhão. Fala 5: escritório aberto. Fala 9: início do cap. III. Fala 6: 3 lâmpadas no console. Falas 7, 10 e 11: depois da descarga. Fala 12: primeira descida às galerias. Fala 13: depois da fita 7. Fala 14: portão aberto. Falas 15, 16 e 8: ao vivo, no pátio, ao amanhecer.
+
+## Mapa (grade de 66 × 50 células de 2 m)
+
+- **Cap. I:** prédio principal (x 0–43, z 0–32).
+- **Cap. II:** Pavilhão Leste, ala norte (x 44–65, z 0–14).
+- **Cap. III:** Capela, Fototerapia e Crematório (x 44–65, z 15–32).
+- **Cap. IV:** Galerias, Ossário, Reservatório, Quarto da Celeste (z 33–43) e Pátio Interno (z 44–48).
